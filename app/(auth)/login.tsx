@@ -44,7 +44,6 @@ export default function LoginScreen() {
           name,
           flow: "signUp",
         });
-        Alert.alert("Успіх", "Акаунт успішно створено!");
       } else {
         // Вхід в існуючий акаунт
         await signIn("password", {
