@@ -11,6 +11,8 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@auth/core": "^0.41.1",
+    "@convex-dev/auth": "^0.0.95",
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
@@ -24,6 +26,7 @@
     "expo-image": "~3.0.11",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.24",
+    "expo-secure-store": "~15.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
