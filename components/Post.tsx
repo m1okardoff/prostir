@@ -2,10 +2,10 @@ import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View, Alert } from "react-native";
 import { CommentsModal } from "./CommentsModal";
 
 export type PostProps = {
@@ -33,6 +33,32 @@ export const Post = ({ post }: PostProps) => {
 
   const [commentsCount, setCommentsCount] = useState(post.comments);
   const [showComments, setShowComments] = useState(false);
+
+  // 1. Підключаємо дані поточного користувача та мутацію видалення:
+  const currentUser = useQuery(api.users.currentUser);
+  const deletePost = useMutation(api.posts.deletePost);
+
+  // 2. Перевіряємо, чи є користувач автором:
+  const isOwner = currentUser?._id === post.userId;
+
+  // 3. Обробник видалення з підтвердженням:
+  const handleDelete = () => {
+    Alert.alert("Видалити пост", "Ви впевнені, що хочете видалити цей пост?", [
+      { text: "Скасувати", style: "cancel" },
+      {
+        text: "Видалити",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deletePost({ postId: post._id });
+          } catch (error) {
+            console.error("Помилка видалення поста:", error);
+            Alert.alert("Помилка", "Не вдалося видалити пост.");
+          }
+        },
+      },
+    ]);
+  };
 
   // Підключення мутацій Convex
   const toggleLike = useMutation(api.likes.toggleLike);
@@ -93,6 +119,14 @@ export const Post = ({ post }: PostProps) => {
             {post.author.username}
           </Text>
         </View>
+        {isOwner && (
+          <TouchableOpacity
+            onPress={handleDelete}
+            className="p-1 active:opacity-70"
+          >
+            <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Зображення поста */}
@@ -112,14 +146,16 @@ export const Post = ({ post }: PostProps) => {
               color={isLiked ? "#EF4444" : COLORS.white}
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setShowComments(true)} activeOpacity={0.7}>
-          <Ionicons
-            name="chatbubble-outline"
-            size={22}
-            color={COLORS.white}
-          />
-        </TouchableOpacity>
-        
+          <TouchableOpacity
+            onPress={() => setShowComments(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="chatbubble-outline"
+              size={22}
+              color={COLORS.white}
+            />
+          </TouchableOpacity>
         </View>
         <TouchableOpacity onPress={handleBookmark} activeOpacity={0.7}>
           <Ionicons

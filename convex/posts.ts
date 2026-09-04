@@ -110,3 +110,67 @@ export const getPosts = query({
     return postsWithInfo;
   },
 });
+
+/**
+ * Видаляє пост та всі пов'язані з ним сутності (лайки, коментарі, закладки, файли)
+ */
+export const deletePost = mutation({
+  args: {
+    postId: v.id("posts"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Unauthorized: Неавторизований доступ");
+    }
+
+    const post = await ctx.db.get(args.postId);
+    if (!post) throw new Error("Пост не знайдено");
+
+    // Дозволено видаляти тільки власні пости
+    if (post.userId !== userId) {
+      throw new Error("Немає прав для видалення цього поста");
+    }
+
+    // 1. Видаляємо всі пов'язані лайки
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_post", (q) => q.eq("postId", args.postId))
+      .collect();
+    for (const like of likes) {
+      await ctx.db.delete(like._id);
+    }
+
+    // 2. Видаляємо всі пов'язані коментарі
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_post", (q) => q.eq("postId", args.postId))
+      .collect();
+    for (const comment of comments) {
+      await ctx.db.delete(comment._id);
+    }
+
+    // 3. Видаляємо всі пов'язані закладки
+    const bookmarks = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_post", (q) => q.eq("postId", args.postId))
+      .collect();
+    for (const bookmark of bookmarks) {
+      await ctx.db.delete(bookmark._id);
+    }
+
+    // 4. Видаляємо зображення зі Storage
+    await ctx.storage.delete(post.storageId);
+
+    // 5. Видаляємо сам документ посту
+    await ctx.db.delete(args.postId);
+
+    // 6. Зменшуємо кількість постів користувача
+    const currentUser = await ctx.db.get(userId);
+    if (currentUser) {
+      await ctx.db.patch(userId, {
+        posts: Math.max(0, (currentUser.posts ?? 1) - 1),
+      });
+    }
+  },
+});
