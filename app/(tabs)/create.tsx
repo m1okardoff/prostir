@@ -1,14 +1,14 @@
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  TextInput, 
-  ScrollView, 
-  ActivityIndicator, 
-  Alert, 
-  KeyboardAvoidingView, 
-  Platform 
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
@@ -22,10 +22,10 @@ import { fetch } from "expo/fetch";
 
 export default function CreateScreen() {
   const router = useRouter();
-  
+
   // Отримуємо поточного користувача з Convex Auth
   const currentUser = useQuery(api.users.currentUser);
-  
+
   const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
   const createPost = useMutation(api.posts.createPost);
 
@@ -38,7 +38,7 @@ export default function CreateScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      aspect: [1, 1],
+      // aspect: [1, 1],
       quality: 0.8,
     });
 
@@ -60,7 +60,7 @@ export default function CreateScreen() {
 
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
-      aspect: [1, 1],
+      // aspect: [1, 1],
       quality: 0.8,
     });
 
@@ -124,7 +124,10 @@ export default function CreateScreen() {
       Alert.alert("Успіх", "Публікацію успішно створено!");
     } catch (error) {
       console.error("Error sharing post:", error);
-      Alert.alert("Помилка", "Не вдалося завантажити зображення або створити пост.");
+      Alert.alert(
+        "Помилка",
+        "Не вдалося завантажити зображення або створити пост.",
+      );
     } finally {
       setIsSharing(false);
     }
@@ -142,15 +145,17 @@ export default function CreateScreen() {
           <View className="w-7" />
         </View>
 
-        <TouchableOpacity 
-          className="flex-1 justify-center items-center gap-3 p-6" 
+        <TouchableOpacity
+          className="flex-1 justify-center items-center gap-3 p-6"
           onPress={pickImage}
           activeOpacity={0.8}
         >
           <View className="w-20 h-20 rounded-full bg-surface border border-surfaceLight items-center justify-center">
             <Ionicons name="image-outline" size={40} color={COLORS.grey} />
           </View>
-          <Text className="text-grey text-base font-medium">Натисніть, щоб обрати фото</Text>
+          <Text className="text-grey text-base font-medium">
+            Натисніть, щоб обрати фото
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -181,20 +186,6 @@ export default function CreateScreen() {
           </TouchableOpacity>
 
           <Text className="text-white text-lg font-semibold">Новий пост</Text>
-
-          <TouchableOpacity
-            className={`px-3 py-1.5 min-w-[70px] items-center justify-center rounded-xl bg-primary active:opacity-90 ${
-              isSharing || !selectedImage ? "opacity-50" : ""
-            }`}
-            disabled={isSharing || !selectedImage}
-            onPress={handleShare}
-          >
-            {isSharing ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <Text className="text-white text-sm font-bold">Опублікувати</Text>
-            )}
-          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -217,13 +208,15 @@ export default function CreateScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="image-outline" size={18} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold">Змінити</Text>
+                <Text className="text-white text-xs font-semibold">
+                  Змінити
+                </Text>
               </TouchableOpacity>
             </View>
 
             {/* Секція опису */}
-            <View className="p-4 flex-1">
-              <View className="flex-row items-start">
+            <View className="p-4 flex-1 p-[100px]">
+              <View className="flex-row items-start grow">
                 {currentUser?.image ? (
                   <Image
                     source={{ uri: currentUser.image }}
@@ -244,6 +237,21 @@ export default function CreateScreen() {
                   editable={!isSharing}
                 />
               </View>
+              <TouchableOpacity
+                className={`px-3 py-1.5 min-w-[70px] items-center justify-center rounded-xl bg-primary active:opacity-90 ${
+                  isSharing || !selectedImage ? "opacity-50" : ""
+                }`}
+                disabled={isSharing || !selectedImage}
+                onPress={handleShare}
+              >
+                {isSharing ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text className="text-white text-sm font-bold">
+                    Опублікувати
+                  </Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
