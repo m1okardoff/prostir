@@ -3,8 +3,10 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
+import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import { CommentsModal } from "./CommentsModal";
 
 export type PostProps = {
   post: {
@@ -28,6 +30,9 @@ export const Post = ({ post }: PostProps) => {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likes);
   const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
+
+  const [commentsCount, setCommentsCount] = useState(post.comments);
+  const [showComments, setShowComments] = useState(false);
 
   // Підключення мутацій Convex
   const toggleLike = useMutation(api.likes.toggleLike);
@@ -107,13 +112,14 @@ export const Post = ({ post }: PostProps) => {
               color={isLiked ? "#EF4444" : COLORS.white}
             />
           </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7}>
-            <Ionicons
-              name="chatbubble-outline"
-              size={22}
-              color={COLORS.white}
-            />
-          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowComments(true)} activeOpacity={0.7}>
+          <Ionicons
+            name="chatbubble-outline"
+            size={22}
+            color={COLORS.white}
+          />
+        </TouchableOpacity>
+        
         </View>
         <TouchableOpacity onPress={handleBookmark} activeOpacity={0.7}>
           <Ionicons
@@ -140,7 +146,29 @@ export const Post = ({ post }: PostProps) => {
             <Text className="text-white text-sm flex-1">{post.caption}</Text>
           </View>
         ) : null}
+        {commentsCount > 0 && (
+          <TouchableOpacity
+            onPress={() => setShowComments(true)}
+            className="mt-0.5 mb-1"
+          >
+            <Text className="text-grey text-sm">
+              Переглянути всі {commentsCount} коментарів
+            </Text>
+          </TouchableOpacity>
+        )}
+        <Text className="text-grey text-xs mb-2">
+          {formatDistanceToNow(post._creationTime, { addSuffix: true })}
+        </Text>
       </View>
+      {/* Модальне вікно коментарів */}
+      {showComments && (
+        <CommentsModal
+          postId={post._id}
+          visible={showComments}
+          onClose={() => setShowComments(false)}
+          onCommentsCountChange={setCommentsCount}
+        />
+      )}
     </View>
   );
 };
