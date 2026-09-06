@@ -11,6 +11,7 @@ import { Post } from "@/components/Post";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/theme";
+import { StoriesSection } from "@/components/StoriesSection";
 
 export default function FeedScreen() {
   const posts = useQuery(api.posts.getPosts);
@@ -44,6 +45,7 @@ export default function FeedScreen() {
         keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 60 }}
+        ListHeaderComponent={<StoriesSection />}
         ListEmptyComponent={
           <View className="flex-1 justify-center items-center mt-12 px-6">
             <Ionicons

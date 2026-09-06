@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Запит для отримання профілю поточного авторизованого користувача
@@ -39,5 +40,67 @@ export const updateUserProfile = mutation({
       fullname: args.fullname,
       bio: args.bio,
     });
+  },
+});
+
+export const getStoriesUsers = query({
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return null;
+    }
+
+    const currentUser = await ctx.db.get(userId);
+    if (!currentUser) return null;
+
+    const now = Date.now();
+
+    // Завантажуємо список людей, на яких підписаний поточний користувач
+    const follows = await ctx.db
+      .query("follows")
+      .withIndex("by_follower", (q) => q.eq("followerId", userId))
+      .collect();
+
+    const followingUsers = await Promise.all(
+      follows.map((f) => ctx.db.get(f.followingId)),
+    );
+
+    // Допоміжна функція для перевірки наявності активної історії
+    const hasActiveStory = async (uId: Id<"users">) => {
+      const story = await ctx.db
+        .query("stories")
+        .withIndex("by_user", (q) => q.eq("userId", uId))
+        .filter((q) => q.gt(q.field("expiresAt"), now))
+        .first();
+      return !!story;
+    };
+
+    const currentUserHasStory = await hasActiveStory(userId);
+
+    // Формуємо масив користувачів для рендерингу історій
+    const storiesList = [
+      {
+        id: userId,
+        username: "You",
+        avatar:
+          currentUser.image ??
+          "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+        hasStory: currentUserHasStory,
+      },
+      ...(await Promise.all(
+        followingUsers
+          .filter((user): user is NonNullable<typeof user> => user !== null)
+          .map(async (user) => ({
+            id: user._id,
+            username: user.username ?? user.name ?? "user",
+            avatar:
+              user.image ??
+              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+            hasStory: await hasActiveStory(user._id),
+          })),
+      )),
+    ];
+
+    return storiesList;
   },
 });
