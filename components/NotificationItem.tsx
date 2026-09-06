@@ -1,84 +1,110 @@
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
-import { Image, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 
 export interface NotificationProps {
-  notification: {
-    _id: Id<"notifications">;
-    type: "like" | "comment" | "follow";
-    sender: {
-      _id: Id<"users">;
-      username: string;
-      image: string;
+    notification: {
+        _id: Id<"notifications">;
+        type: "like" | "comment" | "follow";
+        sender: {
+            _id: Id<"users">;
+            username: string;
+            image: string;
+        };
+        post: {
+            _id: Id<"posts">;
+            imageUrl: string;
+        } | null;
+        comment?: string;
+        _creationTime: number;
     };
-    post: {
-      _id: Id<"posts">;
-      imageUrl: string;
-    } | null;
-    comment?: string;
-    _creationTime: number;
-  };
 }
 
 export function NotificationItem({ notification }: NotificationProps) {
-  const getActionText = () => {
-    switch (notification.type) {
-      case "follow":
-        return "почав(-ла) стежити за вами";
-      case "like":
-        return "вподобав(-ла) вашу публікацію";
-      case "comment":
-        return `прокоментував(-ла): "${notification.comment ?? ""}"`;
-      default:
-        return "";
-    }
-  };
+    const router = useRouter();
 
-  return (
-    <View className="flex-row items-center justify-between py-3 px-4 border-b border-surface">
-      <View className="flex-row items-center flex-1 mr-3">
-        {/* Аватар з бейджем типу сповіщення */}
-        <View className="relative mr-3">
-          <Image
-            source={{ uri: notification.sender.image }}
-            className="w-11 h-11 rounded-full border border-surfaceLight"
-          />
-          <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-black border border-surface items-center justify-center">
-            {notification.type === "like" ? (
-              <Ionicons name="heart" size={11} color="#EF4444" />
-            ) : notification.type === "follow" ? (
-              <Ionicons name="person-add" size={11} color="#8B5CF6" />
-            ) : (
-              <Ionicons name="chatbubble" size={11} color="#3B82F6" />
+    const getActionText = () => {
+        switch (notification.type) {
+            case "follow":
+                return "почав(-ла) стежити за вами";
+            case "like":
+                return "вподобав(-ла) вашу публікацію";
+            case "comment":
+                return `прокоментував(-ла): "${notification.comment ?? ""}"`;
+            default:
+                return "";
+        }
+    };
+
+    return (
+        <View className="flex-row items-center justify-between py-3 px-4 border-b border-surface">
+            <View className="flex-row items-center flex-1 mr-3">
+                {/* Аватар з бейджем типу сповіщення */}
+                <TouchableOpacity
+                    onPress={() =>
+                        router.push(`/user/${notification.sender._id}`)
+                    }
+                    activeOpacity={0.8}
+                    className="flex-row items-center flex-1 mr-3"
+                >
+                    <View className="relative mr-3">
+                        <Image
+                            source={{ uri: notification.sender.image }}
+                            className="w-11 h-11 rounded-full border border-surfaceLight"
+                        />
+                        <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-black border border-surface items-center justify-center">
+                            {notification.type === "like" ? (
+                                <Ionicons
+                                    name="heart"
+                                    size={11}
+                                    color="#EF4444"
+                                />
+                            ) : notification.type === "follow" ? (
+                                <Ionicons
+                                    name="person-add"
+                                    size={11}
+                                    color="#8B5CF6"
+                                />
+                            ) : (
+                                <Ionicons
+                                    name="chatbubble"
+                                    size={11}
+                                    color="#3B82F6"
+                                />
+                            )}
+                        </View>
+                    </View>
+                </TouchableOpacity>
+
+                {/* Текст сповіщення */}
+                <View className="flex-1">
+                    <Text className="text-white text-sm font-semibold mb-0.5">
+                        {notification.sender.username}
+                    </Text>
+                    <Text
+                        className="text-grey text-sm mb-0.5"
+                        numberOfLines={2}
+                    >
+                        {getActionText()}
+                    </Text>
+                    <Text className="text-grey text-xs">
+                        {formatDistanceToNow(notification._creationTime, {
+                            addSuffix: true,
+                        })}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Мініатюра поста, до якого відноситься сповіщення */}
+            {notification.post && (
+                <Image
+                    source={{ uri: notification.post.imageUrl }}
+                    className="w-11 h-11 rounded-lg bg-surface"
+                    resizeMode="cover"
+                />
             )}
-          </View>
         </View>
-
-        {/* Текст сповіщення */}
-        <View className="flex-1">
-          <Text className="text-white text-sm font-semibold mb-0.5">
-            {notification.sender.username}
-          </Text>
-          <Text className="text-grey text-sm mb-0.5" numberOfLines={2}>
-            {getActionText()}
-          </Text>
-          <Text className="text-grey text-xs">
-            {formatDistanceToNow(notification._creationTime, {
-              addSuffix: true,
-            })}
-          </Text>
-        </View>
-      </View>
-
-      {/* Мініатюра поста, до якого відноситься сповіщення */}
-      {notification.post && (
-        <Image
-          source={{ uri: notification.post.imageUrl }}
-          className="w-11 h-11 rounded-lg bg-surface"
-          resizeMode="cover"
-        />
-      )}
-    </View>
-  );
+    );
 }
