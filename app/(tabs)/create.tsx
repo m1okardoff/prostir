@@ -121,7 +121,6 @@ export default function CreateScreen() {
       setSelectedImage(null);
       setCaption("");
       router.push("/(tabs)");
-      Alert.alert("Успіх", "Публікацію успішно створено!");
     } catch (error) {
       console.error("Error sharing post:", error);
       Alert.alert(
@@ -137,26 +136,44 @@ export default function CreateScreen() {
   if (!selectedImage) {
     return (
       <View className="flex-1 bg-black">
+        {/* Хедер */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface">
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="p-1 -ml-1 rounded-full active:opacity-70"
+          >
             <Ionicons name="arrow-back" size={26} color={COLORS.primary} />
           </TouchableOpacity>
-          <Text className="text-white text-lg font-semibold">Новий пост</Text>
-          <View className="w-7" />
+          <Text className="text-white text-lg font-semibold tracking-tight">
+            Новий пост
+          </Text>
+          <View className="w-8" />
         </View>
 
-        <TouchableOpacity
-          className="flex-1 justify-center items-center gap-3 p-6"
-          onPress={pickImage}
-          activeOpacity={0.8}
-        >
-          <View className="w-20 h-20 rounded-full bg-surface border border-surfaceLight items-center justify-center">
-            <Ionicons name="image-outline" size={40} color={COLORS.grey} />
-          </View>
-          <Text className="text-grey text-base font-medium">
-            Натисніть, щоб обрати фото
-          </Text>
-        </TouchableOpacity>
+        {/* Контейнер вибору зображення */}
+        <View className="flex-1 justify-center px-6 pb-20">
+          <TouchableOpacity
+            className="border-2 border-dashed border-surfaceLight bg-surface/30 rounded-3xl p-8 items-center justify-center active:opacity-80"
+            onPress={pickImage}
+            activeOpacity={0.8}
+          >
+            <View className="w-20 h-20 rounded-full bg-surface border border-surfaceLight items-center justify-center mb-4">
+              <Ionicons name="image-outline" size={38} color={COLORS.primary} />
+            </View>
+
+            <Text className="text-white text-lg font-bold mb-1 text-center">
+              Додайте фотографію
+            </Text>
+            <Text className="text-grey text-sm text-center mb-6 px-4">
+              Зробіть знімок на камеру або виберіть фото із галереї
+            </Text>
+
+            <View className="flex-row items-center bg-primary px-5 py-3 rounded-2xl gap-2 shadow-lg shadow-primary/30">
+              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+              <Text className="text-white font-bold text-sm">Обрати фото</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -164,19 +181,20 @@ export default function CreateScreen() {
   // Екран заповнення опису та відправки поста
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-black"
       keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
     >
       <View className="flex-1">
         {/* Хедер */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface bg-black">
           <TouchableOpacity
             onPress={() => {
               setSelectedImage(null);
               setCaption("");
             }}
             disabled={isSharing}
+            className="p-1 -ml-1 rounded-full active:opacity-70"
           >
             <Ionicons
               name="close-outline"
@@ -185,76 +203,94 @@ export default function CreateScreen() {
             />
           </TouchableOpacity>
 
-          <Text className="text-white text-lg font-semibold">Новий пост</Text>
+          <Text className="text-white text-lg font-semibold tracking-tight">
+            Новий пост
+          </Text>
+
+          <View className="w-8" />
         </View>
 
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
           bounces={false}
           keyboardShouldPersistTaps="handled"
         >
           <View className={`flex-1 ${isSharing ? "opacity-70" : ""}`}>
             {/* Секція зображення */}
-            <View className="w-full aspect-square bg-surface relative justify-center items-center">
+            <View className="mx-4 mt-4 rounded-3xl overflow-hidden bg-surface border border-surfaceLight relative aspect-square max-h-[380px] shadow-lg shadow-black/50">
               <Image
                 source={{ uri: selectedImage }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
               <TouchableOpacity
-                className="absolute bottom-4 right-4 bg-black/75 flex-row items-center px-3 py-2 rounded-xl gap-1.5"
+                className="absolute bottom-3 right-3 bg-black/75 px-3.5 py-2 rounded-full flex-row items-center gap-1.5 border border-white/20 active:opacity-80"
                 onPress={pickImage}
                 disabled={isSharing}
                 activeOpacity={0.8}
               >
-                <Ionicons name="image-outline" size={18} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold">
-                  Змінити
-                </Text>
+                <Ionicons name="images-outline" size={16} color="#FFFFFF" />
+                <Text className="text-white text-xs font-semibold">Змінити</Text>
               </TouchableOpacity>
             </View>
 
             {/* Секція опису */}
-            <View className="p-4 flex-1 p-[100px]">
-              <View className="flex-row items-start grow">
-                {currentUser?.image ? (
-                  <Image
-                    source={{ uri: currentUser.image }}
-                    className="w-10 h-10 rounded-full mr-3 border border-surfaceLight"
+            <View className="px-4 pt-4">
+              <View className="bg-surface/60 border border-surfaceLight rounded-2xl p-3.5">
+                <View className="flex-row items-start">
+                  {currentUser?.image ? (
+                    <Image
+                      source={{ uri: currentUser.image }}
+                      className="w-10 h-10 rounded-full mr-3 border border-surfaceLight"
+                    />
+                  ) : (
+                    <View className="w-10 h-10 rounded-full mr-3 bg-surface border border-surfaceLight items-center justify-center">
+                      <Ionicons name="person" size={20} color={COLORS.primary} />
+                    </View>
+                  )}
+                  <TextInput
+                    className="flex-1 text-white text-base pt-1 min-h-[80px]"
+                    placeholder="Напишіть опис до публікації..."
+                    placeholderTextColor={COLORS.grey}
+                    multiline
+                    textAlignVertical="top"
+                    value={caption}
+                    onChangeText={setCaption}
+                    editable={!isSharing}
                   />
-                ) : (
-                  <View className="w-10 h-10 rounded-full mr-3 bg-surface border border-surfaceLight items-center justify-center">
-                    <Ionicons name="person" size={20} color={COLORS.primary} />
-                  </View>
-                )}
-                <TextInput
-                  className="flex-1 text-white text-base pt-2 min-h-[44px]"
-                  placeholder="Напишіть опис до публікації..."
-                  placeholderTextColor={COLORS.grey}
-                  multiline
-                  value={caption}
-                  onChangeText={setCaption}
-                  editable={!isSharing}
-                />
+                </View>
               </View>
-              <TouchableOpacity
-                className={`px-3 py-1.5 min-w-[70px] items-center justify-center rounded-xl bg-primary active:opacity-90 ${
-                  isSharing || !selectedImage ? "opacity-50" : ""
-                }`}
-                disabled={isSharing || !selectedImage}
-                onPress={handleShare}
-              >
-                {isSharing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text className="text-white text-sm font-bold">
-                    Опублікувати
-                  </Text>
-                )}
-              </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
+
+        {/* Закріплена панель із кнопкою «Опублікувати» внизу */}
+        <View className="px-4 pt-3 pb-[74px] border-t border-surface bg-black">
+          <TouchableOpacity
+            className={`w-full py-3.5 rounded-2xl flex-row items-center justify-center gap-2 bg-primary active:opacity-85 shadow-lg ${
+              isSharing || !selectedImage ? "opacity-50" : ""
+            }`}
+            disabled={isSharing || !selectedImage}
+            onPress={handleShare}
+            activeOpacity={0.8}
+          >
+            {isSharing ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text className="text-white text-base font-bold ml-2">
+                  Публікація...
+                </Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="paper-plane-outline" size={20} color="#FFFFFF" />
+                <Text className="text-white text-base font-bold tracking-wide">
+                  Опублікувати
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );

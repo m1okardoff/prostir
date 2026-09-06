@@ -11,6 +11,7 @@ import { CommentsModal } from "./CommentsModal";
 export type PostProps = {
   post: {
     _id: Id<"posts">;
+    userId?: Id<"users">;
     imageUrl: string;
     caption?: string;
     likes: number;

@@ -53,7 +53,7 @@ export default function FeedScreen() {
               style={{ marginBottom: 12 }}
             />
             <Text className="text-grey text-base text-center">
-              Постів ще немає. Створіть перший у вкладці "+"
+              Постів ще немає. Створіть перший у вкладці «+»
             </Text>
           </View>
         }
