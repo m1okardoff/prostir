@@ -2,6 +2,7 @@ import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "convex/react";
+import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
   Image,
@@ -13,6 +14,7 @@ import {
 
 export default function BookmarksScreen() {
   const bookmarkedPosts = useQuery(api.bookmarks.getBookmarkedPosts);
+  const router = useRouter();
 
   if (bookmarkedPosts === undefined) {
     return (
@@ -53,6 +55,7 @@ export default function BookmarksScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   className="w-full h-full bg-surface"
+                  onPress={() => router.push(`/post/${post._id}`)}
                 >
                   <Image
                     source={{ uri: post.imageUrl }}
