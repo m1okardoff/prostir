@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as comments from "../comments.js";
+import type * as follows from "../follows.js";
 import type * as http from "../http.js";
 import type * as likes from "../likes.js";
 import type * as notifications from "../notifications.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bookmarks: typeof bookmarks;
   comments: typeof comments;
+  follows: typeof follows;
   http: typeof http;
   likes: typeof likes;
   notifications: typeof notifications;
