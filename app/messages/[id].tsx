@@ -228,6 +228,7 @@ export default function ChatRoomScreen() {
               senderName={item.senderName}
               isGroup={conversation.isGroup}
               senderAvatar={item.senderAvatar}
+              senderId={item.senderId}
             />
           )}
           ListEmptyComponent={

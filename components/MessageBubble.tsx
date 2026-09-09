@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 interface MessageBubbleProps {
   content: string;
@@ -10,6 +11,7 @@ interface MessageBubbleProps {
   senderName: string;
   isGroup: boolean;
   senderAvatar?: string;
+  senderId: string;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -20,6 +22,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   senderName,
   isGroup,
   senderAvatar,
+  senderId,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -27,28 +30,32 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     minute: "2-digit",
   });
 
+  const router = useRouter();
+
   return (
     <View
       className={`my-4 max-w-[80%] ${
         isMine ? "self-end items-end" : "self-start items-start"
       }`}
     >
-      <View className="flex-row items-center gap-1 mb-2 ">
-        <Image
-          source={{
-            uri: senderAvatar
-              ? senderAvatar
-              : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-          }}
-          style={{ width: 25, height: 25, borderRadius: 50 }}
-          contentFit="cover"
-        />
-        {!isMine && isGroup && (
-          <Text className="text-grey text-[11px] mb-1 ml-2 font-medium">
-            {senderName}
-          </Text>
-        )}
-      </View>
+      <TouchableOpacity onPress={() => router.push(`/user/${senderId}`)}>
+        <View className="flex-row items-center gap-1 mb-2 ">
+          <Image
+            source={{
+              uri: senderAvatar
+                ? senderAvatar
+                : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+            }}
+            style={{ width: 25, height: 25, borderRadius: 50 }}
+            contentFit="cover"
+          />
+          {!isMine && isGroup && (
+            <Text className="text-grey text-[11px] mb-1 ml-2 font-medium">
+              {senderName}
+            </Text>
+          )}
+        </View>
+      </TouchableOpacity>
 
       <View
         className={`px-3 py-2 rounded-2xl ${
