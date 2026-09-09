@@ -1,24 +1,24 @@
+import { ChatInput } from "@/components/ChatInput";
+import { MessageBubble } from "@/components/MessageBubble";
+import { COLORS } from "@/constants/theme";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery } from "convex/react";
+import { File } from "expo-file-system";
+import { Image } from "expo-image";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
   ActivityIndicator,
+  Alert,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useLocalSearchParams, router } from "expo-router";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/constants/theme";
-import { Id } from "@/convex/_generated/dataModel";
-import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput } from "@/components/ChatInput";
-import { File } from "expo-file-system";
 
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,28 +26,17 @@ export default function ChatRoomScreen() {
 
   const [isSending, setIsSending] = useState(false);
 
-  const conversation = useQuery(
-    api.conversations.getConversation,
-    { conversationId },
-  );
+  const conversation = useQuery(api.conversations.getConversation, {
+    conversationId,
+  });
 
-  const messages = useQuery(
-    api.messages.getMessages,
-    { conversationId },
-  );
+  const messages = useQuery(api.messages.getMessages, { conversationId });
 
-  const sendMessageMutation = useMutation(
-    api.messages.sendMessage,
-  );
+  const sendMessageMutation = useMutation(api.messages.sendMessage);
 
-  const generateUploadUrlMutation = useMutation(
-    api.messages.generateUploadUrl,
-  );
+  const generateUploadUrlMutation = useMutation(api.messages.generateUploadUrl);
 
-  const handleSendMessage = async (
-    text: string,
-    selectedImageUri?: string,
-  ) => {
+  const handleSendMessage = async (text: string, selectedImageUri?: string) => {
     try {
       setIsSending(true);
 
@@ -64,20 +53,15 @@ export default function ChatRoomScreen() {
         console.log("File type:", file.type);
 
         if (!file.exists) {
-          throw new Error(
-            "Файл зображення не існує або більше недоступний.",
-          );
+          throw new Error("Файл зображення не існує або більше недоступний.");
         }
 
         if (!file.size || file.size <= 0) {
-          throw new Error(
-            "Файл зображення порожній.",
-          );
+          throw new Error("Файл зображення порожній.");
         }
 
         // Отримуємо URL Convex Storage
-        const uploadUrl =
-          await generateUploadUrlMutation();
+        const uploadUrl = await generateUploadUrlMutation();
 
         console.log("Upload URL:", uploadUrl);
 
@@ -87,33 +71,21 @@ export default function ChatRoomScreen() {
         const uploadResult = await fetch(uploadUrl, {
           method: "POST",
           headers: {
-            "Content-Type":
-              file.type || "image/jpeg",
+            "Content-Type": file.type || "image/jpeg",
           },
           body: blob,
         });
 
-        const responseText =
-          await uploadResult.text();
+        const responseText = await uploadResult.text();
 
-        console.log(
-          "Upload status:",
-          uploadResult.status,
-        );
+        console.log("Upload status:", uploadResult.status);
 
-        console.log(
-          "Upload response:",
-          responseText,
-        );
+        console.log("Upload response:", responseText);
 
         if (!uploadResult.ok) {
           throw new Error(
-            `Не вдалося завантажити зображення: HTTP ${
-              uploadResult.status
-            }${
-              responseText
-                ? ` — ${responseText}`
-                : ""
+            `Не вдалося завантажити зображення: HTTP ${uploadResult.status}${
+              responseText ? ` — ${responseText}` : ""
             }`,
           );
         }
@@ -131,18 +103,12 @@ export default function ChatRoomScreen() {
         }
 
         if (!json.storageId) {
-          throw new Error(
-            `Convex не повернув storageId: ${responseText}`,
-          );
+          throw new Error(`Convex не повернув storageId: ${responseText}`);
         }
 
-        storageId =
-          json.storageId as Id<"_storage">;
+        storageId = json.storageId as Id<"_storage">;
 
-        console.log(
-          "Uploaded storage ID:",
-          storageId,
-        );
+        console.log("Uploaded storage ID:", storageId);
       }
 
       await sendMessageMutation({
@@ -153,31 +119,21 @@ export default function ChatRoomScreen() {
 
       console.log("Message sent successfully");
     } catch (error: any) {
-      console.error(
-        "Error sending message:",
-        error,
-      );
+      console.error("Error sending message:", error);
 
       Alert.alert(
         "Помилка",
-        error?.message ||
-          "Не вдалося надіслати повідомлення",
+        error?.message || "Не вдалося надіслати повідомлення",
       );
     } finally {
       setIsSending(false);
     }
   };
 
-  if (
-    conversation === undefined ||
-    messages === undefined
-  ) {
+  if (conversation === undefined || messages === undefined) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
-        <ActivityIndicator
-          size="large"
-          color={COLORS.primary}
-        />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -185,24 +141,20 @@ export default function ChatRoomScreen() {
   if (!conversation) {
     return (
       <View className="flex-1 bg-black justify-center items-center px-4">
-        <Text className="text-white text-base mb-4">
-          Бесіду не знайдено
-        </Text>
+        <Text className="text-white text-base mb-4">Бесіду не знайдено</Text>
 
         <TouchableOpacity
           onPress={() => router.back()}
           className="bg-primary px-4 py-2 rounded-xl"
         >
-          <Text className="text-white font-semibold">
-            Повернутися
-          </Text>
+          <Text className="text-white font-semibold">Повернутися</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const headerTitle = conversation.isGroup
-    ? conversation.name ?? "Груповий чат"
+    ? (conversation.name ?? "Груповий чат")
     : conversation.otherUser?.fullname ||
       conversation.otherUser?.username ||
       "Користувач";
@@ -215,24 +167,13 @@ export default function ChatRoomScreen() {
     <View className="flex-1 bg-black">
       {/* Хедер чату */}
       <View className="flex-row items-center px-4 py-3 border-b border-surface">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          className="mr-3 p-1"
-        >
-          <Ionicons
-            name="arrow-back"
-            size={24}
-            color="#FFFFFF"
-          />
+        <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
 
         {conversation.isGroup ? (
           <View className="w-10 h-10 rounded-full bg-surfaceLight border border-surface items-center justify-center mr-3">
-            <Ionicons
-              name="people"
-              size={20}
-              color={COLORS.primary}
-            />
+            <Ionicons name="people" size={20} color={COLORS.primary} />
           </View>
         ) : (
           <Image
@@ -252,34 +193,22 @@ export default function ChatRoomScreen() {
         )}
 
         <View className="flex-1 justify-center">
-          <Text
-            numberOfLines={1}
-            className="text-white font-bold text-base"
-          >
+          <Text numberOfLines={1} className="text-white font-bold text-base">
             {headerTitle}
           </Text>
 
           <Text className="text-grey text-xs">
             {conversation.isGroup
               ? `${conversation.participants.length} учасників`
-              : `@${
-                  conversation.otherUser
-                    ?.username ?? "user"
-                }`}
+              : `@${conversation.otherUser?.username ?? "user"}`}
           </Text>
         </View>
       </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={
-          Platform.OS === "ios"
-            ? "padding"
-            : undefined
-        }
-        keyboardVerticalOffset={
-          Platform.OS === "ios" ? 10 : 0
-        }
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 50}
       >
         <FlatList
           data={messages}
@@ -316,10 +245,7 @@ export default function ChatRoomScreen() {
           }
         />
 
-        <ChatInput
-          onSendMessage={handleSendMessage}
-          isSending={isSending}
-        />
+        <ChatInput onSendMessage={handleSendMessage} isSending={isSending} />
       </KeyboardAvoidingView>
     </View>
   );
