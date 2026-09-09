@@ -1,7 +1,6 @@
-import React from "react";
-import { View, Text } from "react-native";
 import { Image } from "expo-image";
-import { COLORS } from "@/constants/theme";
+import React from "react";
+import { Text, View } from "react-native";
 
 interface MessageBubbleProps {
   content: string;
@@ -10,6 +9,7 @@ interface MessageBubbleProps {
   isMine: boolean;
   senderName: string;
   isGroup: boolean;
+  senderAvatar?: string;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -19,6 +19,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isMine,
   senderName,
   isGroup,
+  senderAvatar,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -28,16 +29,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   return (
     <View
-      className={`my-1 max-w-[80%] ${
+      className={`my-4 max-w-[80%] ${
         isMine ? "self-end items-end" : "self-start items-start"
       }`}
     >
-      {/* Ім'я автора (показується тільки в групових чатах для повідомлень інших учасників) */}
-      {!isMine && isGroup && (
-        <Text className="text-grey text-[11px] mb-1 ml-2 font-medium">
-          {senderName}
-        </Text>
-      )}
+      <View className="flex-row items-center gap-1 mb-2 ">
+        <Image
+          source={{
+            uri: senderAvatar
+              ? senderAvatar
+              : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+          }}
+          style={{ width: 25, height: 25, borderRadius: 50 }}
+          contentFit="cover"
+        />
+        {!isMine && isGroup && (
+          <Text className="text-grey text-[11px] mb-1 ml-2 font-medium">
+            {senderName}
+          </Text>
+        )}
+      </View>
 
       <View
         className={`px-3 py-2 rounded-2xl ${

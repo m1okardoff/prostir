@@ -1,7 +1,7 @@
 // convex/messages.ts
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 /**
  * Генерує тимчасове посилання для завантаження фотографії в Convex Storage
@@ -33,7 +33,7 @@ export const getMessages = query({
     const rawMessages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId)
+        q.eq("conversationId", args.conversationId),
       )
       .collect();
 
@@ -46,11 +46,16 @@ export const getMessages = query({
         const sender = await ctx.db.get(msg.senderId);
         return {
           ...msg,
-          senderName: sender?.username ?? sender?.fullname ?? sender?.name ?? "Користувач",
+          senderName:
+            sender?.username ??
+            sender?.fullname ??
+            sender?.name ??
+            "Користувач",
           senderImage: sender?.image,
           isMine: msg.senderId === currentUserId,
+          senderAvatar: sender?.image,
         };
-      })
+      }),
     );
 
     return enrichedMessages;
