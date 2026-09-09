@@ -18,7 +18,7 @@ interface SwipeableNotificationItemProps {
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.28;
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.7;
 
 export function SwipeableNotificationItem({
   notification,
