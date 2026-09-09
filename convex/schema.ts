@@ -72,4 +72,24 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_expires", ["expiresAt"]),
+
+  conversations: defineTable({
+    isGroup: v.boolean(), // true для груп, false для особистих діалогів
+    name: v.optional(v.string()), // Назва групи (для групових чатів)
+    participantIds: v.array(v.id("users")), // Масив ID учасників
+    creatorId: v.id("users"), // Автор/творець чату
+    lastMessage: v.optional(v.string()), // Текст останнього повідомлення для списку чатів
+    lastMessageAt: v.optional(v.number()), // Час останнього повідомлення (для сортування)
+  }),
+
+  messages: defineTable({
+    conversationId: v.id("conversations"), // ID бесіди
+    senderId: v.id("users"), // ID автора повідомлення
+    content: v.string(), // Текст повідомлення
+    imageUrl: v.optional(v.string()), // Публічний URL фото (якщо прикріплено)
+    storageId: v.optional(v.id("_storage")), // ID файлу в сховищі Convex
+    createdAt: v.number(), // Час створення (Date.now())
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_created_at", ["createdAt"]),
 });

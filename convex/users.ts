@@ -125,3 +125,38 @@ export const getUserProfile = query({
         return await ctx.db.get(args.id);
     },
 });
+
+/**
+ * Отримує список усіх користувачів для вибору або пошуку співрозмовників,
+ * виключаючи поточного авторизованого користувача
+ */
+export const searchUsers = query({
+  args: { queryText: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) return [];
+
+    let users = await ctx.db.query("users").collect();
+
+    // Не показуємо себе у списку для вибору
+    users = users.filter((u) => u._id !== currentUserId);
+
+    // Якщо введено пошуковий рядок — фільтруємо за нікнеймом або ім'ям
+    if (args.queryText && args.queryText.trim()) {
+      const q = args.queryText.trim().toLowerCase();
+      users = users.filter((u) => {
+        const username = (u.username ?? "").toLowerCase();
+        const fullname = (u.fullname ?? "").toLowerCase();
+        const name = (u.name ?? "").toLowerCase();
+        return username.includes(q) || fullname.includes(q) || name.includes(q);
+      });
+    }
+
+    return users.map((u) => ({
+      _id: u._id,
+      username: u.username ?? u.name ?? "користувач",
+      fullname: u.fullname ?? u.name ?? "",
+      image: u.image,
+    }));
+  },
+});
