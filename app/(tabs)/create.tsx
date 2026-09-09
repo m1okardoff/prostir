@@ -1,24 +1,24 @@
+import { COLORS } from "@/constants/theme";
+import { api } from "@/convex/_generated/api";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery } from "convex/react";
+import { File } from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { fetch } from "expo/fetch";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  TextInput,
-  ScrollView,
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useState } from "react";
-import { useRouter } from "expo-router";
-import { useMutation, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { COLORS } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
-import { File } from "expo-file-system";
-import { fetch } from "expo/fetch";
 
 export default function CreateScreen() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function CreateScreen() {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
-      // aspect: [1, 1],
+      aspect: [1, 1],
       quality: 0.8,
     });
 
@@ -230,7 +230,9 @@ export default function CreateScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="images-outline" size={16} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold">Змінити</Text>
+                <Text className="text-white text-xs font-semibold">
+                  Змінити
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -245,7 +247,11 @@ export default function CreateScreen() {
                     />
                   ) : (
                     <View className="w-10 h-10 rounded-full mr-3 bg-surface border border-surfaceLight items-center justify-center">
-                      <Ionicons name="person" size={20} color={COLORS.primary} />
+                      <Ionicons
+                        name="person"
+                        size={20}
+                        color={COLORS.primary}
+                      />
                     </View>
                   )}
                   <TextInput
@@ -283,7 +289,11 @@ export default function CreateScreen() {
               </>
             ) : (
               <>
-                <Ionicons name="paper-plane-outline" size={20} color="#FFFFFF" />
+                <Ionicons
+                  name="paper-plane-outline"
+                  size={20}
+                  color="#FFFFFF"
+                />
                 <Text className="text-white text-base font-bold tracking-wide">
                   Опублікувати
                 </Text>

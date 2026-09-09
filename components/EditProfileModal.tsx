@@ -2,8 +2,10 @@ import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
+import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
+import { fetch } from "expo/fetch";
+import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -42,13 +44,23 @@ export function EditProfileModal({
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Скидаємо/синхронізуємо стан форми з актуальними даними користувача при відкритті вікна
+    useEffect(() => {
+        if (visible) {
+            setFullname(user.fullname ?? "");
+            setUsername(user.username ?? "");
+            setBio(user.bio ?? "");
+            setSelectedImageUri(null);
+        }
+    }, [visible, user.fullname, user.username, user.bio, user.image]);
+
     const generateUploadUrl = useMutation(api.posts.generateUploadUrl);
     const updateUserProfile = useMutation(api.users.updateUserProfile);
 
-    // Вибір фото з галереї
-    const pickImage = async () => {
+    // Функція вибору зображення з галереї
+    const pickImageFromLibrary = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ["images"],
             allowsEditing: true,
             aspect: [1, 1],
             quality: 0.8,
@@ -59,23 +71,70 @@ export function EditProfileModal({
         }
     };
 
+    // Функція зйомки нового фото з камери
+    const takePhoto = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert(
+                "Потрібен доступ",
+                "Надайте додатку дозвіл на використання камери у налаштуваннях пристрою",
+            );
+            return;
+        }
+
+        const result = await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets[0].uri) {
+            setSelectedImageUri(result.assets[0].uri);
+        }
+    };
+
+    // Головний селектор вибору джерела фото
+    const pickImage = () => {
+        Alert.alert(
+            "Оберіть дію",
+            "Оберіть джерело для фото профілю",
+            [
+                {
+                    text: "Зробити фото",
+                    onPress: takePhoto,
+                },
+                {
+                    text: "Обрати з галереї",
+                    onPress: pickImageFromLibrary,
+                },
+                {
+                    text: "Скасувати",
+                    style: "cancel",
+                },
+            ],
+        );
+    };
+
     const handleSave = async () => {
         try {
             setIsSubmitting(true);
 
             let imageStorageId = undefined;
 
-            // Якщо користувач обрав новий аватар — завантажуємо його
+            // Якщо користувач обрав новий аватар — завантажуємо через expo-file-system та expo/fetch
             if (selectedImageUri) {
                 const uploadUrl = await generateUploadUrl();
-                const response = await fetch(selectedImageUri);
-                const blob = await response.blob();
+                const file = new File(selectedImageUri);
 
                 const uploadResult = await fetch(uploadUrl, {
                     method: "POST",
-                    headers: { "Content-Type": blob.type || "image/jpeg" },
-                    body: blob,
+                    headers: { "Content-Type": "image/jpeg" },
+                    body: file,
                 });
+
+                if (!uploadResult.ok) {
+                    throw new Error("Не вдалося завантажити зображення на сервер");
+                }
 
                 const json = await uploadResult.json();
                 imageStorageId = json.storageId;
@@ -88,6 +147,7 @@ export function EditProfileModal({
                 imageStorageId,
             });
 
+            setSelectedImageUri(null);
             onClose();
         } catch (error) {
             console.error("Помилка збереження профілю:", error);
