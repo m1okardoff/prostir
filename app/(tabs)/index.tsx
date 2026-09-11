@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useQuery } from "convex/react";
+import { usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Post } from "@/components/Post";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -14,11 +15,32 @@ import { COLORS } from "@/constants/theme";
 import { StoriesSection } from "@/components/StoriesSection";
 import { router } from "expo-router";
 
-export default function FeedScreen() {
-  const posts = useQuery(api.posts.getPosts);
-  const { signOut } = useAuthActions();
+const PAGE_SIZE = 5;
 
-  if (posts === undefined) {
+export default function FeedScreen() {
+  const { signOut } = useAuthActions();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const { results, status, loadMore, isLoading } = usePaginatedQuery(
+    api.posts.getPaginatedPosts,
+    {},
+    { initialNumItems: PAGE_SIZE },
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 600);
+  };
+
+  const handleLoadMore = () => {
+    if (status === "CanLoadMore") {
+      loadMore(PAGE_SIZE);
+    }
+  };
+
+  if (status === "LoadingFirstPage") {
     return (
       <View className="flex-1 bg-black justify-center items-center">
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -52,24 +74,48 @@ export default function FeedScreen() {
       </View>
       {/* Стрічка постів */}
       <FlatList
-        data={posts}
+        data={results}
         renderItem={({ item }) => <Post post={item} />}
         keyExtractor={(item) => item._id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 60 }}
         ListHeaderComponent={<StoriesSection />}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
+        ListFooterComponent={
+          status === "LoadingMore" ? (
+            <View className="py-4 items-center">
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            </View>
+          ) : status === "Exhausted" && results.length > 0 ? (
+            <View className="py-6 items-center">
+              <Text className="text-grey text-xs">
+                Ви переглянули всі публікації &#x1f389;
+              </Text>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
-          <View className="flex-1 justify-center items-center mt-12 px-6">
-            <Ionicons
-              name="images-outline"
-              size={48}
-              color={COLORS.grey}
-              style={{ marginBottom: 12 }}
-            />
-            <Text className="text-grey text-base text-center">
-              Постів ще немає. Створіть перший у вкладці «+»
-            </Text>
-          </View>
+          !isLoading ? (
+            <View className="flex-1 justify-center items-center mt-12 px-6">
+              <Ionicons
+                name="images-outline"
+                size={48}
+                color={COLORS.grey}
+                style={{ marginBottom: 12 }}
+              />
+              <Text className="text-grey text-base text-center">
+                Постів ще немає. Створіть перший у вкладці «+»
+              </Text>
+            </View>
+          ) : null
         }
       />
     </View>
