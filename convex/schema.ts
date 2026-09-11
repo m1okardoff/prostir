@@ -1,6 +1,6 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
   ...authTables,
@@ -24,6 +24,7 @@ export default defineSchema({
     caption: v.optional(v.string()),
     likes: v.number(),
     comments: v.number(),
+    createdAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
   likes: defineTable({

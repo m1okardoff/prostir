@@ -1,4 +1,5 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -84,5 +85,62 @@ export const getBookmarkedPosts = query({
     return postsWithInfo.filter(
       (post): post is NonNullable<typeof post> => post !== null,
     );
+  },
+});
+
+/**
+ * Отримує збережені пости поточного користувача з курсорною пагінацією
+ * для високопродуктивної сітки 3x3
+ */
+export const getPaginatedBookmarks = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    // 1. Завантажуємо порцію закладок користувача (від найновіших до старіших)
+    const paginated = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    if (paginated.page.length === 0) {
+      return paginated;
+    }
+
+    // 2. Завантажуємо інформацію про пости ТІЛЬКИ для поточної порції
+    const posts = await Promise.all(
+      paginated.page.map(async (bookmark) => {
+        const post = await ctx.db.get(bookmark.postId);
+        if (!post) return null;
+
+        return {
+          _id: post._id,
+          imageUrl: post.imageUrl,
+          caption: post.caption,
+          createdAt: post.createdAt,
+          bookmarkId: bookmark._id,
+        };
+      }),
+    );
+
+    // 3. Відфільтровуємо пости, які могли бути видалені авторами
+    const validPosts = posts.filter(
+      (p): p is NonNullable<typeof p> => p !== null,
+    );
+
+    return {
+      ...paginated,
+      page: validPosts,
+    };
   },
 });
