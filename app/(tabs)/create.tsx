@@ -4,13 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { fetch } from "expo/fetch";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -220,8 +220,10 @@ export default function CreateScreen() {
             <View className="mx-4 mt-4 rounded-3xl overflow-hidden bg-surface border border-surfaceLight relative aspect-square max-h-[380px] shadow-lg shadow-black/50">
               <Image
                 source={{ uri: selectedImage }}
+                style={{ width: "100%", height: "100%" }}
                 className="w-full h-full"
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
               />
               <TouchableOpacity
                 className="absolute bottom-3 right-3 bg-black/75 px-3.5 py-2 rounded-full flex-row items-center gap-1.5 border border-white/20 active:opacity-80"
@@ -243,7 +245,9 @@ export default function CreateScreen() {
                   {currentUser?.image ? (
                     <Image
                       source={{ uri: currentUser.image }}
+                      style={{ width: 40, height: 40, borderRadius: 20 }}
                       className="w-10 h-10 rounded-full mr-3 border border-surfaceLight"
+                      contentFit="cover"
                     />
                   ) : (
                     <View className="w-10 h-10 rounded-full mr-3 bg-surface border border-surfaceLight items-center justify-center">

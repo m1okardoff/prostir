@@ -3,10 +3,11 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
+import { Image } from "expo-image";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { CommentsModal } from "./CommentsModal";
 
 export type PostProps = {
@@ -137,7 +138,9 @@ export const Post = ({ post }: PostProps) => {
                 >
                     <Image
                         source={{ uri: post.author.image }}
+                        style={{ width: 32, height: 32, borderRadius: 16 }}
                         className="w-8 h-8 rounded-full mr-2.5 border border-surfaceLight"
+                        contentFit="cover"
                     />
                     <Text className="text-white text-sm font-semibold">
                         {post.author.username}
@@ -160,8 +163,10 @@ export const Post = ({ post }: PostProps) => {
             {/* Зображення поста */}
             <Image
                 source={{ uri: post.imageUrl }}
+                style={{ width: "100%", aspectRatio: 1 }}
                 className="w-full aspect-square bg-surface"
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
             />
 
             {/* Рядок дій (кнопки лайка, коментаря, закладки) */}

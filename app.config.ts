@@ -38,7 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       package: isDev ? `${PACKAGE_NAME}.dev` : PACKAGE_NAME,
       adaptiveIcon: {
-        foregroundImage: "./assets/images/adaptive-icon.png",
+        foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
       },
       // Дозволи для фото та збереження файлів

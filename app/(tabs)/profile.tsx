@@ -4,12 +4,12 @@ import { api } from "@/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import { usePaginatedQuery, useQuery } from "convex/react";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
     FlatList,
-    Image,
     Text,
     TouchableOpacity,
     View,
@@ -73,7 +73,10 @@ export default function ProfileScreen() {
             {user.image ? (
               <Image
                 source={{ uri: user.image }}
+                style={{ width: 80, height: 80, borderRadius: 40 }}
                 className="w-20 h-20 rounded-full border-2 border-surfaceLight"
+                contentFit="cover"
+                transition={200}
               />
             ) : (
               <View className="w-20 h-20 rounded-full bg-surface border-2 border-surfaceLight items-center justify-center">
@@ -190,8 +193,10 @@ export default function ProfileScreen() {
             >
               <Image
                 source={{ uri: item.imageUrl }}
+                style={{ width: "100%", height: "100%" }}
                 className="w-full h-full"
-                resizeMode="cover"
+                contentFit="cover"
+                transition={200}
               />
             </TouchableOpacity>
           </View>

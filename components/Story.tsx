@@ -1,4 +1,5 @@
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { Image } from "expo-image";
+import { Text, TouchableOpacity, View } from "react-native";
 
 type StoryUser = {
   id: string;
@@ -28,7 +29,9 @@ export default function Story({ story, onPress }: StoryProps) {
       >
         <Image
           source={{ uri: story.avatar }}
+          style={{ width: 58, height: 58, borderRadius: 29 }}
           className="w-[58px] h-[58px] rounded-full border border-black"
+          contentFit="cover"
         />
       </View>
       <Text className="text-white text-xs text-center" numberOfLines={1}>

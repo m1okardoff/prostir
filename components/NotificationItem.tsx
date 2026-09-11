@@ -1,8 +1,9 @@
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { formatDistanceToNow } from "date-fns";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Image, Text, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 export interface NotificationProps {
   notification: {
@@ -50,7 +51,9 @@ export function NotificationItem({ notification }: NotificationProps) {
           <View className="relative mr-3">
             <Image
               source={{ uri: notification.sender.image }}
+              style={{ width: 44, height: 44, borderRadius: 22 }}
               className="w-11 h-11 rounded-full border border-surfaceLight"
+              contentFit="cover"
             />
             <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-black border border-surface items-center justify-center">
               {notification.type === "like" ? (
@@ -84,8 +87,9 @@ export function NotificationItem({ notification }: NotificationProps) {
       {notification.post && (
         <Image
           source={{ uri: notification.post.imageUrl }}
+          style={{ width: 44, height: 44, borderRadius: 8 }}
           className="w-11 h-11 rounded-lg bg-surface"
-          resizeMode="cover"
+          contentFit="cover"
         />
       )}
     </View>
