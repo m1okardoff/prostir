@@ -3,6 +3,7 @@ import { api } from "@/convex/_generated/api";
 import { Ionicons } from "@expo/vector-icons";
 import { usePaginatedQuery } from "convex/react";
 import { useRouter } from "expo-router";
+import { memo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -35,7 +36,7 @@ export default function BookmarksScreen() {
   };
   const router = useRouter();
 
-  if (bookmarkedPosts === undefined) {
+  if (isLoading && bookmarkedPosts.length === 0) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -59,21 +60,7 @@ export default function BookmarksScreen() {
         contentContainerStyle={{ paddingBottom: 60 }}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
-        renderItem={({ item }) => (
-          <View className="w-1/3 aspect-square p-0.5">
-            <TouchableOpacity
-              activeOpacity={0.8}
-              className="w-full h-full bg-surface"
-              onPress={() => router.push(`/post/${item._id}`)}
-            >
-              <Image
-                source={{ uri: item.imageUrl }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            </TouchableOpacity>
-          </View>
-        )}
+        renderItem={({ item }) => <ItemBookmark key={item._id} item={item} />}
         ListFooterComponent={
           status === "LoadingMore" ? (
             <View className="py-4 items-center w-full">
@@ -103,3 +90,25 @@ export default function BookmarksScreen() {
     </View>
   );
 }
+
+function ItemBookmarkComponent({ item }: { item: any }) {
+  const router = useRouter();
+
+  return (
+    <View className="w-1/3 aspect-square p-0.5">
+      <TouchableOpacity
+        activeOpacity={0.8}
+        className="w-full h-full bg-surface"
+        onPress={() => router.push(`/post/${item._id}`)}
+      >
+        <Image
+          source={{ uri: item.imageUrl }}
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const ItemBookmark = memo(ItemBookmarkComponent);

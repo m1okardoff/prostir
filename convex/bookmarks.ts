@@ -113,10 +113,6 @@ export const getPaginatedBookmarks = query({
       .order("desc")
       .paginate(args.paginationOpts);
 
-    if (paginated.page.length === 0) {
-      return paginated;
-    }
-
     // 2. Завантажуємо інформацію про пости ТІЛЬКИ для поточної порції
     const posts = await Promise.all(
       paginated.page.map(async (bookmark) => {

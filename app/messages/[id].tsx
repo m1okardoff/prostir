@@ -4,7 +4,7 @@ import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
 import { Image } from "expo-image";
@@ -31,7 +31,16 @@ export default function ChatRoomScreen() {
     conversationId,
   });
 
-  const messages = useQuery(api.messages.getMessages, { conversationId });
+  const {
+    results: messages,
+    status,
+    loadMore,
+    isLoading,
+  } = usePaginatedQuery(
+    api.messages.getPaginatedMessages,
+    { conversationId },
+    { initialNumItems: 25 },
+  );
 
   const sendMessageMutation = useMutation(api.messages.sendMessage);
 
@@ -175,7 +184,7 @@ export default function ChatRoomScreen() {
     }
   };
 
-  if (conversation === undefined || messages === undefined) {
+  if (conversation === undefined || (isLoading && messages.length === 0)) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -264,6 +273,19 @@ export default function ChatRoomScreen() {
             paddingHorizontal: 16,
             paddingVertical: 12,
           }}
+          onEndReached={() => {
+            if (status === "CanLoadMore") {
+              loadMore(20);
+            }
+          }}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            status === "LoadingMore" ? (
+              <View className="py-4 items-center justify-center">
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => (
             <MessageBubble
               content={item.content}
@@ -279,18 +301,20 @@ export default function ChatRoomScreen() {
             />
           )}
           ListEmptyComponent={
-            <View className="items-center justify-center py-16 scale-y-[-1]">
-              <Ionicons
-                name="chatbubble-ellipses-outline"
-                size={44}
-                color={COLORS.grey}
-                style={{ marginBottom: 8 }}
-              />
+            isLoading ? null : (
+              <View className="items-center justify-center py-16 scale-y-[-1]">
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={44}
+                  color={COLORS.grey}
+                  style={{ marginBottom: 8 }}
+                />
 
-              <Text className="text-grey text-sm text-center">
-                Повідомлень ще немає. Напишіть першим!
-              </Text>
-            </View>
+                <Text className="text-grey text-sm text-center">
+                  Повідомлень ще немає. Напишіть першим!
+                </Text>
+              </View>
+            )
           }
         />
 

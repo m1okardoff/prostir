@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { memo } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 
@@ -17,7 +17,7 @@ interface MessageBubbleProps {
   audioDuration?: number; // 👈 Нове поле
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({
+const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   content,
   imageUrl,
   createdAt,
@@ -106,3 +106,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     </View>
   );
 };
+
+export const MessageBubble = memo(MessageBubbleComponent);
+

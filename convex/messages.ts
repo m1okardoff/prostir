@@ -1,5 +1,6 @@
 // convex/messages.ts
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
@@ -59,6 +60,70 @@ export const getMessages = query({
     );
 
     return enrichedMessages;
+  },
+});
+
+/**
+ * Отримує повідомлення бесіди порціями (з пагінацією)
+ * Сортування: від найновіших до найстаріших (desc) для інвертованого FlatList
+ */
+export const getPaginatedMessages = query({
+  args: {
+    conversationId: v.id("conversations"),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    // Перевіряємо, чи існує бесіда та чи користувач є її учасником
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation || !conversation.participantIds.includes(currentUserId)) {
+      return {
+        page: [],
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+
+    // 1. Завантажуємо порцію повідомлень за індексом розмови
+    // order("desc") гарантує порядок від найсвіжіших до старіших за _creationTime
+    const paginated = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId),
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    // 2. Збагачуємо інформацією про авторів ТІЛЬКИ поточну завантажену сторінку (page)
+    const enrichedMessages = await Promise.all(
+      paginated.page.map(async (msg) => {
+        const sender = await ctx.db.get(msg.senderId);
+        return {
+          ...msg,
+          senderName:
+            sender?.username ??
+            sender?.fullname ??
+            sender?.name ??
+            "Користувач",
+          senderImage: sender?.image,
+          isMine: msg.senderId === currentUserId,
+          senderAvatar: sender?.image,
+        };
+      }),
+    );
+
+    return {
+      ...paginated,
+      page: enrichedMessages,
+    };
   },
 });
 
