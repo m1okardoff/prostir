@@ -28,8 +28,6 @@ export default function FeedScreen() {
     { initialNumItems: PAGE_SIZE },
   );
 
-  console.log(results);
-
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
