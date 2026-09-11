@@ -1,19 +1,20 @@
-import {
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-  TouchableOpacity,
-} from "react-native";
-import { useQuery } from "convex/react";
-import { usePaginatedQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { Post } from "@/components/Post";
+import { StoriesSection } from "@/components/StoriesSection";
+import { COLORS } from "@/constants/theme";
+import { api } from "@/convex/_generated/api";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
-import { COLORS } from "@/constants/theme";
-import { StoriesSection } from "@/components/StoriesSection";
+import { usePaginatedQuery } from "convex/react";
 import { router } from "expo-router";
+import { useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const PAGE_SIZE = 5;
 
@@ -26,6 +27,8 @@ export default function FeedScreen() {
     {},
     { initialNumItems: PAGE_SIZE },
   );
+
+  console.log(results);
 
   const onRefresh = () => {
     setRefreshing(true);
