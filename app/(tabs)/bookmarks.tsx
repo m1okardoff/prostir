@@ -54,11 +54,11 @@ export default function BookmarksScreen() {
       <FlatList
         data={bookmarkedPosts}
         keyExtractor={(item) => item._id}
-        numColumns={3}
+        numColumns={3} // Кількість колонок
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 60 }}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
+        onEndReached={handleLoadMore} // Коли користувач доскролює до кінця списку, викликається handleLoadMore
+        onEndReachedThreshold={0.5} // 0.5 означає, що handleLoadMore буде викликано, коли користувач доскролює до 50% кінця списку
         renderItem={({ item }) => (
           <View className="w-1/3 aspect-square p-0.5">
             <TouchableOpacity
@@ -76,9 +76,9 @@ export default function BookmarksScreen() {
             </TouchableOpacity>
           </View>
         )}
-        initialNumToRender={12}
-        maxToRenderPerBatch={12}
-        windowSize={7}
+        initialNumToRender={12} // Кількість елементів, які буде рендеритись одразу
+        maxToRenderPerBatch={12} // Кількість елементів, які буде рендеритись за один раз
+        windowSize={7} // Кількість елементів, які будуть рендеритись одночасно
         ListFooterComponent={
           status === "LoadingMore" ? (
             <View className="py-4 items-center w-full">

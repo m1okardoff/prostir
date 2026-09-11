@@ -267,10 +267,6 @@ export const getPaginatedPosts = query({
             .order("desc")
             .paginate(args.paginationOpts);
 
-        if (paginated.page.length === 0) {
-            return paginated;
-        }
-
         // 2. Збагачуємо інформацією ТІЛЬКИ пости поточної завантаженої сторінки!
         const postsWithInfo = await Promise.all(
             paginated.page.map(async (post) => {
