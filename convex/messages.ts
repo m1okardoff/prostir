@@ -70,6 +70,8 @@ export const sendMessage = mutation({
     conversationId: v.id("conversations"),
     content: v.string(),
     storageId: v.optional(v.id("_storage")),
+    audioStorageId: v.optional(v.id("_storage")), // 👈 для аудіо
+    audioDuration: v.optional(v.number()), // 👈 тривалість у секундах
   },
   handler: async (ctx, args) => {
     const currentUserId = await getAuthUserId(ctx);
@@ -87,7 +89,8 @@ export const sendMessage = mutation({
     }
 
     const trimmedContent = args.content.trim();
-    if (!trimmedContent && !args.storageId) {
+    // Повідомлення вважається валідним, якщо є текст, фото АБО голосове
+    if (!trimmedContent && !args.storageId && !args.audioStorageId) {
       throw new Error("Повідомлення не може бути порожнім");
     }
 
@@ -100,6 +103,12 @@ export const sendMessage = mutation({
       }
     }
 
+    let audioUrl: string | undefined = undefined;
+    if (args.audioStorageId) {
+      const url = await ctx.storage.getUrl(args.audioStorageId);
+      if (url) audioUrl = url;
+    }
+
     const now = Date.now();
 
     // Зберігаємо повідомлення в таблицю messages
@@ -109,12 +118,24 @@ export const sendMessage = mutation({
       content: trimmedContent,
       imageUrl,
       storageId: args.storageId,
+      audioUrl,
+      audioStorageId: args.audioStorageId,
+      audioDuration: args.audioDuration,
       createdAt: now,
     });
 
-    // Оновлюємо метадані останнього повідомлення в розмові
-    const previewText =
-      trimmedContent || (args.storageId ? "&#x1f4f7; Фотографія" : "");
+    // Формуємо прев'ю останнього повідомлення для списку бесід
+    let previewText = trimmedContent;
+    if (!previewText) {
+      if (args.audioStorageId) {
+        const dur = args.audioDuration
+          ? ` (${Math.round(args.audioDuration)}с)`
+          : "";
+        previewText = `🎤 Голосове повідомлення${dur}`;
+      } else if (args.storageId) {
+        previewText = "📷 Фотографія";
+      }
+    }
 
     await ctx.db.patch(args.conversationId, {
       lastMessage: previewText,

@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 
 interface MessageBubbleProps {
   content: string;
@@ -12,6 +13,8 @@ interface MessageBubbleProps {
   isGroup: boolean;
   senderAvatar?: string;
   senderId: string;
+  audioUrl?: string; // 👈 Нове поле
+  audioDuration?: number; // 👈 Нове поле
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
@@ -23,6 +26,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   isGroup,
   senderAvatar,
   senderId,
+  audioUrl,
+  audioDuration,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -74,6 +79,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               transition={200}
             />
           </View>
+        ) : null}
+
+        {audioUrl ? (
+          <VoiceMessagePlayer
+            audioUrl={audioUrl}
+            duration={audioDuration}
+            isMine={isMine}
+          />
         ) : null}
 
         {/* Текст повідомлення */}

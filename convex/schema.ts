@@ -88,6 +88,9 @@ export default defineSchema({
     content: v.string(), // Текст повідомлення
     imageUrl: v.optional(v.string()), // Публічний URL фото (якщо прикріплено)
     storageId: v.optional(v.id("_storage")), // ID файлу в сховищі Convex
+    audioUrl: v.optional(v.string()), // Публічний URL аудіо (якщо прикріплено)
+    audioStorageId: v.optional(v.id("_storage")), // ID аудіофайлу в сховищі Convex
+    audioDuration: v.optional(v.number()), // тривалість у секундах
     createdAt: v.number(), // Час створення (Date.now())
   })
     .index("by_conversation", ["conversationId"])

@@ -6,6 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
 import { File } from "expo-file-system";
+import { fetch } from "expo/fetch";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -36,6 +37,53 @@ export default function ChatRoomScreen() {
 
   const generateUploadUrlMutation = useMutation(api.messages.generateUploadUrl);
 
+  // Обробник надсилання голосового повідомлення
+  const handleSendAudio = async (audioUri: string, durationSeconds: number) => {
+    try {
+      setIsSending(true);
+
+      // 1. Отримуємо одноразовий URL для завантаження аудіо
+      const uploadUrl = await generateUploadUrlMutation();
+
+      // 2. Створюємо екземпляр файлу з локального URI
+      const file = new File(audioUri);
+
+      // 3. Завантажуємо файл у Convex Storage через expo/fetch
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "audio/m4a" },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult.text();
+        throw new Error(
+          `Не вдалося завантажити голосове повідомлення: HTTP ${uploadResult.status}${
+            errorText ? ` — ${errorText}` : ""
+          }`,
+        );
+      }
+
+      const { storageId } = await uploadResult.json();
+
+      // 4. Зберігаємо повідомлення в базі
+      await sendMessageMutation({
+        conversationId,
+        content: "",
+        audioStorageId: storageId,
+        audioDuration: durationSeconds,
+      });
+    } catch (error: any) {
+      console.error("Помилка надсилання аудіо:", error);
+      Alert.alert(
+        "Помилка",
+        error.message || "Не вдалося надіслати голосове повідомлення",
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handleSendMessage = async (text: string, selectedImageUri?: string) => {
     try {
       setIsSending(true);
@@ -65,15 +113,12 @@ export default function ChatRoomScreen() {
 
         console.log("Upload URL:", uploadUrl);
 
-        // Отримуємо Blob з локального файлу
-        const blob = await file.arrayBuffer();
-
         const uploadResult = await fetch(uploadUrl, {
           method: "POST",
           headers: {
             "Content-Type": file.type || "image/jpeg",
           },
-          body: blob,
+          body: file,
         });
 
         const responseText = await uploadResult.text();
@@ -229,6 +274,8 @@ export default function ChatRoomScreen() {
               isGroup={conversation.isGroup}
               senderAvatar={item.senderAvatar}
               senderId={item.senderId}
+              audioUrl={item.audioUrl}
+              audioDuration={item.audioDuration}
             />
           )}
           ListEmptyComponent={
@@ -247,7 +294,11 @@ export default function ChatRoomScreen() {
           }
         />
 
-        <ChatInput onSendMessage={handleSendMessage} isSending={isSending} />
+        <ChatInput
+          onSendMessage={handleSendMessage}
+          onSendAudio={handleSendAudio}
+          isSending={isSending}
+        />
       </KeyboardAvoidingView>
     </View>
   );

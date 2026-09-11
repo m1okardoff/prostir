@@ -29,6 +29,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: isDev ? `${PACKAGE_NAME}.dev` : PACKAGE_NAME,
+      infoPlist: {
+        NSMicrophoneUsageDescription:
+          "Додатку потрібен доступ до мікрофона для запису та надсилання голосових повідомлень.",
+      },
     },
 
     android: {
@@ -39,6 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
       // Дозволи для фото та збереження файлів
       permissions: [
+        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
@@ -53,6 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     plugins: [
+      "expo-audio",
       "expo-router",
       [
         "expo-splash-screen",
