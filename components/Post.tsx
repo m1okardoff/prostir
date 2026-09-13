@@ -6,16 +6,11 @@ import { useMutation, useQuery } from "convex/react";
 import { Image } from "expo-image";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "expo-router";
-import Animated, {
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from "react-native-reanimated";
+import Animated, { cancelAnimation } from "react-native-reanimated";
 import { useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
 import { CommentsModal } from "./CommentsModal";
+import { useSpring } from "@/hooks/useSpring";
 
 export type PostProps = {
   post: {
@@ -54,68 +49,8 @@ export const Post = ({ post }: PostProps) => {
   const toggleLike = useMutation(api.likes.toggleLike);
   const toggleBookmark = useMutation(api.bookmarks.toggleBookmark);
 
-  const likeScale = useSharedValue(1);
-  const bookmarkScale = useSharedValue(1);
-
-  const likeAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: likeScale.value }],
-  }));
-
-  const bookmarkAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: bookmarkScale.value }],
-  }));
-
-  const animateLike = (liked: boolean) => {
-    cancelAnimation(likeScale);
-
-    if (!liked) {
-      likeScale.value = 1;
-      return;
-    }
-
-    likeScale.value = 1;
-
-    likeScale.value = withSequence(
-      withSpring(1.2, {
-        damping: 14,
-        stiffness: 650,
-      }),
-      withSpring(0.96, {
-        damping: 16,
-        stiffness: 650,
-      }),
-      withSpring(1, {
-        damping: 16,
-        stiffness: 650,
-      }),
-    );
-  };
-
-  const animateBookmark = (bookmarked: boolean) => {
-    cancelAnimation(bookmarkScale);
-
-    if (!bookmarked) {
-      bookmarkScale.value = 1;
-      return;
-    }
-
-    bookmarkScale.value = 1;
-
-    bookmarkScale.value = withSequence(
-      withSpring(1.18, {
-        damping: 14,
-        stiffness: 650,
-      }),
-      withSpring(0.96, {
-        damping: 16,
-        stiffness: 650,
-      }),
-      withSpring(1, {
-        damping: 16,
-        stiffness: 650,
-      }),
-    );
-  };
+  const [animateLike, likeAnimatedStyle, likeScale] = useSpring();
+  const [animateBookmark, bookmarkAnimatedStyle, bookmarkScale] = useSpring();
 
   const handleDelete = () => {
     Alert.alert("Видалити пост", "Ви впевнені, що хочете видалити цей пост?", [
