@@ -1,8 +1,9 @@
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "convex/react";
-import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "convex/react";
+import { useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
 
 import Animated, {
@@ -74,12 +75,17 @@ function StoryProgressBar({
 }
 
 export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
+  const router = useRouter();
+  const currentUser = useQuery(api.users.currentUser);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const progress = useSharedValue(0);
   const incrementViews = useMutation(api.stories.incrementViews);
 
   const currentStory = stories[currentIndex];
+
+  const isPaused = useRef(false);
+  const pressStartTime = useRef(0);
 
   // Запуск прогресу поточної історії:
   const startProgress = () => {
@@ -137,7 +143,75 @@ export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
     onClose();
   };
 
+  const pauseProgress = () => {
+    isPaused.current = true;
+    cancelAnimation(progress);
+  };
+
+  const resumeProgress = () => {
+    if (!isPaused.current) return;
+    isPaused.current = false;
+
+    // Отримуємо поточне значення з Reanimated Shared Value (число від 0 до 1)
+    const currentProgress = progress.value;
+    const remainingDuration = STORY_DURATION * (1 - currentProgress);
+
+    if (remainingDuration <= 0) {
+      goNext();
+      return;
+    }
+
+    // Продовжуємо анімацію з поточної точки до 1
+    progress.value = withTiming(
+      1,
+      {
+        duration: remainingDuration,
+        easing: Easing.linear,
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(goNext)();
+        }
+      },
+    );
+  };
+
   if (!visible || stories.length === 0) return null;
+
+  const handlePressIn = () => {
+    pressStartTime.current = Date.now();
+    pauseProgress();
+  };
+
+  const handlePressOut = () => {
+    resumeProgress();
+  };
+
+  const handlePrevPress = () => {
+    // Якщо палець тримали менше 250 мс — це був швидкий тап назад
+    if (Date.now() - pressStartTime.current < 250) {
+      goPrev();
+    }
+  };
+
+  const handleNextPress = () => {
+    // Якщо палець тримали менше 250 мс — це був швидкий тап вперед
+    if (Date.now() - pressStartTime.current < 250) {
+      goNext();
+    }
+  };
+
+  const isSelf = currentUser?._id === user.id || user.username === "You";
+
+  const handleProfilePress = () => {
+    handleClose();
+
+    if (isSelf) {
+      router.push("/profile");
+    } else {
+      router.push(`/user/${user.id}`);
+    }
+  };
 
   return (
     <Modal
@@ -155,7 +229,7 @@ export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
         />
 
         {/* Прогрес-бари кожної історії */}
-        <View className="flex-row px-2 pt-12 gap-1 z-10">
+        <View className="flex-row px-2 pt-12 gap-1 z-20">
           {stories.map((_, index) => (
             <StoryProgressBar
               key={index}
@@ -167,7 +241,7 @@ export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
         </View>
 
         {/* Хедер: інформація про автора та кнопка закриття */}
-        <View className="flex-row items-center justify-between px-4 pt-3 z-10">
+        <View className="flex-row items-center justify-between px-4 pt-3 z-20">
           <View className="flex-row items-center gap-2.5">
             <Image
               source={{ uri: user.avatar }}
@@ -183,15 +257,19 @@ export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
         </View>
 
         {/* Сенсорні зони перемикання (ліворуч / праворуч) */}
-        <View className="absolute inset-0 flex-row z-5">
+        <View className="absolute inset-0 flex-row z-10">
           <TouchableOpacity
             className="flex-1"
-            onPress={goPrev}
+            onPress={handlePrevPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
             activeOpacity={1}
           />
           <TouchableOpacity
             className="flex-1"
-            onPress={goNext}
+            onPress={handleNextPress}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
             activeOpacity={1}
           />
         </View>
