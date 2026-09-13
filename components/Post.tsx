@@ -1,16 +1,16 @@
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useSpring } from "@/hooks/useSpring";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery } from "convex/react";
-import { Image } from "expo-image";
 import { formatDistanceToNow } from "date-fns";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import Animated, { cancelAnimation } from "react-native-reanimated";
 import { useState } from "react";
 import { Alert, Text, TouchableOpacity, View } from "react-native";
+import Animated, { cancelAnimation } from "react-native-reanimated";
 import { CommentsModal } from "./CommentsModal";
-import { useSpring } from "@/hooks/useSpring";
 
 export type PostProps = {
   post: {

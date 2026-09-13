@@ -1,4 +1,4 @@
-import Animated, {
+import {
   cancelAnimation,
   useAnimatedStyle,
   useSharedValue,
@@ -39,5 +39,5 @@ export function useSpring() {
     );
   };
 
-  return [animateSpring, springAnimatedStyle, springScale];
+  return [animateSpring, springAnimatedStyle, springScale] as const;
 }

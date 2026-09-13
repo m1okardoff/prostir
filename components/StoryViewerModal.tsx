@@ -1,16 +1,19 @@
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  Animated,
-  Image,
-} from "react-native";
-import { useEffect, useRef, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
-import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation } from "convex/react";
+import { useEffect, useState } from "react";
+import { Image, Modal, Text, TouchableOpacity, View } from "react-native";
+
+import Animated, {
+  cancelAnimation,
+  Easing,
+  runOnJS,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 const STORY_DURATION = 5000; // 5 секунд на один слайд
 
@@ -35,29 +38,71 @@ type Props = {
   onClose: () => void;
 };
 
+interface StoryProgressBarProps {
+  index: number;
+  currentIndex: number;
+  progress: SharedValue<number>;
+}
+
+function StoryProgressBar({
+  index,
+  currentIndex,
+  progress,
+}: StoryProgressBarProps) {
+  // Анімований стиль ширини для кожного сегмента:
+  const animatedWidthStyle = useAnimatedStyle(() => {
+    if (index < currentIndex) {
+      // Історія вже переглянута — 100% заповнення
+      return { width: "100%" };
+    }
+    if (index === currentIndex) {
+      // Поточна активна історія — динамічне зростання 0% -> 100%
+      return { width: `${progress.value * 100}%` };
+    }
+    // Майбутні історії — 0% заповнення
+    return { width: "0%" };
+  });
+
+  return (
+    <View className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden">
+      <Animated.View
+        className="h-full bg-white rounded-full"
+        style={animatedWidthStyle}
+      />
+    </View>
+  );
+}
+
 export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const progress = useRef(new Animated.Value(0)).current;
-  const animation = useRef<Animated.CompositeAnimation | null>(null);
+  const progress = useSharedValue(0);
   const incrementViews = useMutation(api.stories.incrementViews);
 
   const currentStory = stories[currentIndex];
 
+  // Запуск прогресу поточної історії:
   const startProgress = () => {
-    progress.setValue(0);
-    animation.current = Animated.timing(progress, {
-      toValue: 1,
-      duration: STORY_DURATION,
-      useNativeDriver: false,
-    });
-    animation.current.start(({ finished }) => {
-      if (finished) goNext();
-    });
+    progress.value = 0; // Скидаємо в початок
+    progress.value = withTiming(
+      1,
+      {
+        duration: STORY_DURATION,
+        easing: Easing.linear, // Рівномірний рух індикатора
+      },
+      (finished) => {
+        // ⚠️ Важливо: колбек виконується в UI-ворклеті,
+        // тому виклик JS-функції goNext загортаємо в runOnJS!
+        if (finished) {
+          runOnJS(goNext)();
+        }
+      },
+    );
   };
 
+  // Зупинка анімації:
   const stopProgress = () => {
-    animation.current?.stop();
+    cancelAnimation(progress);
   };
 
   useEffect(() => {
@@ -112,25 +157,12 @@ export function StoryViewerModal({ visible, user, stories, onClose }: Props) {
         {/* Прогрес-бари кожної історії */}
         <View className="flex-row px-2 pt-12 gap-1 z-10">
           {stories.map((_, index) => (
-            <View
+            <StoryProgressBar
               key={index}
-              className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden"
-            >
-              <Animated.View
-                className="h-full bg-white rounded-full"
-                style={{
-                  width:
-                    index < currentIndex
-                      ? "100%"
-                      : index === currentIndex
-                        ? progress.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: ["0%", "100%"],
-                          })
-                        : "0%",
-                }}
-              />
-            </View>
+              index={index}
+              currentIndex={currentIndex}
+              progress={progress}
+            />
           ))}
         </View>
 
