@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { cssInterop } from "nativewind";
 import { Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 cssInterop(Image, { className: "style" });
 
@@ -23,18 +24,20 @@ const secureStorage = {
 
 export default function RootLayout() {
   return (
-    <ConvexAuthProvider
-      client={convex}
-      storage={
-        Platform.OS === "android" || Platform.OS === "ios"
-          ? secureStorage
-          : undefined
-      }
-    >
-      <SafeAreaView className="flex-1 bg-black">
-        <StatusBar style="light" /> 
-        <InitialLayout />
-      </SafeAreaView>
-    </ConvexAuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ConvexAuthProvider
+        client={convex}
+        storage={
+          Platform.OS === "android" || Platform.OS === "ios"
+            ? secureStorage
+            : undefined
+        }
+      >
+        <SafeAreaView className="flex-1 bg-black">
+          <StatusBar style="light" /> 
+          <InitialLayout />
+        </SafeAreaView>
+      </ConvexAuthProvider>
+    </GestureHandlerRootView>
   );
 }

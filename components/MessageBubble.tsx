@@ -79,7 +79,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
             : "bg-surface border border-surfaceLight rounded-tl-xs"
         }`}
       >
-        {/* &#x1f448; Блок цитати (Reply Quote Box) */}
+        {/* 👈 Блок цитати (Reply Quote Box) */}
         {replyToSender && (
           <View className="mb-2 p-2 rounded-lg bg-black/25 border-l-2 border-white/80">
             <Text className="text-white/90 font-bold text-[11px] mb-0.5">
@@ -125,14 +125,14 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
         >
           {timeString}
         </Text>
-      </View>
 
-      {/* &#x1f448; Блок емодзі-реакцій під бульбашкою */}
-      <MessageReactions
-        reactions={reactions}
-        onToggleReaction={onToggleReaction}
-        isMine={isMine}
-      />
+        {/* ❤️ Реакції всередині бульбашки */}
+        <MessageReactions
+          reactions={reactions}
+          onToggleReaction={onToggleReaction}
+          isMine={isMine}
+        />
+      </View>
     </View>
   );
 };

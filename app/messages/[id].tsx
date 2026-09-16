@@ -21,7 +21,7 @@ import {
   View,
 } from "react-native";
 import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
-import { ReactionPickerModal } from "@/components/ReactionPickerModal";
+import { ReactionPickerModal, ReactionPickerPosition } from "@/components/ReactionPickerModal";
 
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,8 +54,10 @@ export default function ChatRoomScreen() {
     text: string;
   } | null>(null);
 
-  const [selectedMessageId, setSelectedMessageId] =
-    useState<Id<"messages"> | null>(null);
+  const [pickerState, setPickerState] = useState<{
+    messageId: Id<"messages">;
+    position: ReactionPickerPosition;
+  } | null>(null);
 
   // 2. Мутація перемикання реакцій:
   const toggleReactionMutation = useMutation(api.messages.toggleReaction);
@@ -274,7 +276,9 @@ export default function ChatRoomScreen() {
                 });
               }}
               onDoubleTap={() => handleToggleReaction(item._id, "❤️")}
-              onLongPress={() => setSelectedMessageId(item._id)}
+              onLongPress={(position) =>
+                setPickerState({ messageId: item._id, position })
+              }
             >
               <MessageBubble
                 content={item.content}
@@ -318,15 +322,18 @@ export default function ChatRoomScreen() {
           onSendMessage={handleSendMessage}
           onSendAudio={handleSendAudio}
           isSending={isSending}
+          replyingTo={replyingTo}
+          onCancelReply={() => setReplyingTo(null)}
         />
       </KeyboardAvoidingView>
       {/* Модальне меню швидких емодзі */}
       <ReactionPickerModal
-        visible={!!selectedMessageId}
-        onClose={() => setSelectedMessageId(null)}
+        visible={!!pickerState}
+        position={pickerState?.position}
+        onClose={() => setPickerState(null)}
         onSelectEmoji={(emoji) => {
-          if (selectedMessageId) {
-            handleToggleReaction(selectedMessageId, emoji);
+          if (pickerState) {
+            handleToggleReaction(pickerState.messageId, emoji);
           }
         }}
       />

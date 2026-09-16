@@ -1,9 +1,9 @@
 import { COLORS } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { useRef } from "react";
 import { View } from "react-native";
-import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   clamp,
   runOnJS,
@@ -11,12 +11,14 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { ReactionPickerPosition } from "./ReactionPickerModal";
 
 interface SwipeableMessageItemProps {
   children: React.ReactNode;
   onReply: () => void;
   onDoubleTap: () => void;
-  onLongPress: () => void;
+  // Тепер передаємо позицію для показу пікера над повідомленням
+  onLongPress: (position: ReactionPickerPosition) => void;
   isMine: boolean;
 }
 
@@ -31,6 +33,9 @@ export const SwipeableMessageItem: React.FC<SwipeableMessageItemProps> = ({
 }) => {
   const translateX = useSharedValue(0);
 
+  // Ref для вимірювання позиції елемента на екрані
+  const containerRef = useRef<View>(null);
+
   const triggerReply = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onReply();
@@ -41,9 +46,16 @@ export const SwipeableMessageItem: React.FC<SwipeableMessageItemProps> = ({
     onDoubleTap();
   };
 
+  // Вимірюємо позицію і передаємо у пікер
   const triggerLongPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    onLongPress();
+    containerRef.current?.measureInWindow((x, y, width) => {
+      onLongPress({
+        x: isMine ? x + width : x,
+        y,
+        isMine,
+      });
+    });
   };
 
   // 1. Жест свайпу праворуч для відповіді
@@ -91,8 +103,7 @@ export const SwipeableMessageItem: React.FC<SwipeableMessageItemProps> = ({
   }));
 
   return (
-    <GestureHandlerRootView>
-    <View className="relative w-full my-1 justify-center">
+    <View ref={containerRef} className="relative w-full my-1 justify-center">
       {/* Прихована іконка відповіді ліворуч */}
       <Animated.View
         style={[replyIconStyle]}
@@ -106,6 +117,5 @@ export const SwipeableMessageItem: React.FC<SwipeableMessageItemProps> = ({
         <Animated.View style={animatedStyle}>{children}</Animated.View>
       </GestureDetector>
     </View>
-    </GestureHandlerRootView>
   );
 };
