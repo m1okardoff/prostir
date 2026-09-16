@@ -1,3 +1,4 @@
+import { ReplyPreviewBar } from "@/components/ReplyPreviewBar";
 import { COLORS } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -18,34 +19,41 @@ import {
   View,
 } from "react-native";
 
+export interface ReplyingToData {
+  messageId: string;
+  senderName: string;
+  text: string;
+}
+
 interface ChatInputProps {
   onSendMessage: (text: string, selectedImageUri?: string) => Promise<void>;
   onSendAudio?: (audioUri: string, durationSeconds: number) => Promise<void>;
   isSending: boolean;
+  replyingTo?: ReplyingToData | null;
+  onCancelReply?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   onSendAudio,
   isSending,
+  replyingTo,
+  onCancelReply,
 }) => {
   const [text, setText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // Рекордер з бібліотеки expo-audio
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Очищення таймера при демонтажі
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
 
-  // 1. Початок запису аудіо
   const startRecording = async () => {
     try {
       const permission = await requestRecordingPermissionsAsync();
@@ -57,7 +65,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         return;
       }
 
-      // Налаштування аудіорежиму для запису
       await setAudioModeAsync({
         allowsRecording: true,
         playsInSilentMode: true,
@@ -69,7 +76,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       setIsRecording(true);
       setRecordingDuration(0);
 
-      // Запуск таймера тривалості запису
       timerRef.current = setInterval(() => {
         setRecordingDuration((prev) => prev + 1);
       }, 1000);
@@ -79,7 +85,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  // 2. Скасування запису (видалення без надсилання)
   const cancelRecording = async () => {
     try {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -92,42 +97,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  // 3. Зупинка запису та його відправка
   const stopAndSendRecording = async () => {
     try {
       if (timerRef.current) clearInterval(timerRef.current);
-
       const duration = recordingDuration;
       await audioRecorder.stop();
-      const uri = audioRecorder.uri;
-
       setIsRecording(false);
       setRecordingDuration(0);
 
+      const uri = audioRecorder.uri;
       if (uri && onSendAudio) {
         await onSendAudio(uri, duration);
       }
     } catch (error) {
-      console.error("Помилка завершення запису:", error);
-      Alert.alert("Помилка", "Не вдалося зберегти аудіозапис.");
+      console.error("Помилка зупинки запису:", error);
     }
   };
 
-  // Вибір зображення з галереї
   const pickImage = async () => {
     try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(
-          "Потрібен доступ",
-          "Надайте доступ до галереї, щоб надсилати фото.",
-        );
-        return;
-      }
-
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [4, 3],
         quality: 0.8,
       });
 
@@ -135,123 +127,114 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      console.error("Помилка вибору фото:", error);
     }
   };
 
-  // Відправка звичайного тексту/фото
   const handleSend = async () => {
     if ((!text.trim() && !selectedImage) || isSending) return;
-
     const currentText = text;
-    const currentImage = selectedImage ?? undefined;
-
+    const currentImage = selectedImage;
     setText("");
     setSelectedImage(null);
-
-    await onSendMessage(currentText, currentImage);
-  };
-
-  // Форматування таймера запису (наприклад, "0:05")
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
+    await onSendMessage(currentText, currentImage || undefined);
   };
 
   return (
-    <View className="bg-black border-t border-surface px-3 py-2">
-      {/* Прев'ю прикріпленого фото */}
+    <View className="bg-surface border-t border-surfaceLight">
+      {/* &#x1f448; Відображаємо панель відповіді над інпутом */}
+      {replyingTo && onCancelReply && (
+        <ReplyPreviewBar
+          senderName={replyingTo.senderName}
+          text={replyingTo.text}
+          onCancel={onCancelReply}
+        />
+      )}
+
+      {/* Прев'ю вибраної фотографії */}
       {selectedImage && (
-        <View className="mb-2 relative w-16 h-16 rounded-xl overflow-hidden border border-primary">
-          <Image
-            source={{ uri: selectedImage }}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-          <TouchableOpacity
-            onPress={() => setSelectedImage(null)}
-            className="absolute top-1 right-1 bg-black/70 rounded-full p-0.5"
-          >
-            <Ionicons name="close" size={14} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* РЕЖИМ 1: ЙДЕ ЗАПИС АУДІО */}
-      {isRecording ? (
-        <View className="flex-row items-center bg-surface border border-red-500/50 rounded-full px-4 py-2 justify-between">
-          {/* Кнопка скасувати (смітник) */}
-          <TouchableOpacity
-            onPress={cancelRecording}
-            className="p-1 active:opacity-70"
-          >
-            <Ionicons name="trash-outline" size={22} color="#EF4444" />
-          </TouchableOpacity>
-
-          {/* Червоний пульсуючий індикатор та таймер */}
-          <View className="flex-row items-center gap-2">
-            <View className="w-2.5 h-2.5 rounded-full bg-red-500" />
-            <Text className="text-white font-mono font-bold text-base">
-              {formatTimer(recordingDuration)}
-            </Text>
+        <View className="p-3 flex-row items-center border-b border-surfaceLight">
+          <View className="relative">
+            <Image
+              source={{ uri: selectedImage }}
+              style={{ width: 60, height: 60, borderRadius: 8 }}
+              contentFit="cover"
+            />
+            <TouchableOpacity
+              onPress={() => setSelectedImage(null)}
+              className="absolute -top-2 -right-2 bg-primary rounded-full p-1"
+            >
+              <Ionicons name="close" size={12} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
-
-          {/* Кнопка надіслати запис */}
-          <TouchableOpacity
-            onPress={stopAndSendRecording}
-            className="bg-primary p-2 rounded-full active:opacity-80"
-          >
-            <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        /* РЕЖИМ 2: СТАНДАРТНЕ ПОЛЕ ВВОДУ */
-        <View className="flex-row items-center bg-surface border border-surfaceLight rounded-full px-3 py-1">
-          {/* Кнопка вибору зображення */}
-          <TouchableOpacity
-            onPress={pickImage}
-            disabled={isSending}
-            className="p-1 mr-1"
-          >
-            <Ionicons name="image-outline" size={22} color={COLORS.grey} />
-          </TouchableOpacity>
-
-          {/* Текстовий інпут */}
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder="Повідомлення..."
-            placeholderTextColor={COLORS.grey}
-            multiline
-            maxLength={1000}
-            className="flex-1 text-white text-base max-h-24 py-1"
-          />
-
-          {/* Якщо є текст або фото — показуємо кнопку відправки, якщо поле порожнє — мікрофон */}
-          {text.trim() || selectedImage ? (
-            <TouchableOpacity
-              onPress={handleSend}
-              disabled={isSending}
-              className="bg-primary p-1.5 rounded-full ml-1"
-            >
-              {isSending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={startRecording}
-              disabled={isSending}
-              className="p-1.5 ml-1 active:opacity-70"
-            >
-              <Ionicons name="mic" size={22} color={COLORS.primary} />
-            </TouchableOpacity>
-          )}
+          <Text className="text-grey text-xs ml-3 flex-1">Фото додано</Text>
         </View>
       )}
+
+      {/* Панель вводу */}
+      <View className="flex-row items-center px-4 py-3">
+        {isRecording ? (
+          <View className="flex-1 flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <View className="w-3 h-3 rounded-full bg-red-500 mr-2 animate-pulse" />
+              <Text className="text-white font-semibold">
+                {Math.floor(recordingDuration / 60)}:
+                {recordingDuration % 60 < 10 ? "0" : ""}
+                {recordingDuration % 60}
+              </Text>
+            </View>
+
+            <TouchableOpacity onPress={cancelRecording} className="p-2">
+              <Text className="text-grey font-medium">Скасувати</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={stopAndSendRecording}
+              className="bg-primary p-2.5 rounded-full"
+            >
+              <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <TouchableOpacity onPress={pickImage} className="mr-3 p-1">
+              <Ionicons name="image-outline" size={24} color={COLORS.grey} />
+            </TouchableOpacity>
+
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder="Напишіть повідомлення..."
+              placeholderTextColor={COLORS.grey}
+              multiline
+              maxLength={1000}
+              className="flex-1 text-white text-base max-h-24 py-1"
+            />
+
+            {text.trim() || selectedImage ? (
+              <TouchableOpacity
+                onPress={handleSend}
+                disabled={isSending}
+                className="bg-primary p-2.5 rounded-full ml-3"
+              >
+                {isSending ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={startRecording}
+                className="p-1 ml-3"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="mic-outline" size={24} color={COLORS.primary} />
+              </TouchableOpacity>
+            )}
+          </>
+        )}
+      </View>
     </View>
   );
 };

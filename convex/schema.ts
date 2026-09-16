@@ -93,7 +93,18 @@ export default defineSchema({
     audioStorageId: v.optional(v.id("_storage")), // ID аудіофайлу в сховищі Convex
     audioDuration: v.optional(v.number()), // тривалість у секундах
     createdAt: v.number(), // Час створення (Date.now())
+    replyToId: v.optional(v.id("messages")),
+    replyToSender: v.optional(v.string()),
+    replyToText: v.optional(v.string()),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_created_at", ["createdAt"]),
+
+  messageReactions: defineTable({
+    messageId: v.id("messages"),
+    userId: v.id("users"),
+    emoji: v.string(), // "❤️", "&#x1f44d;", "&#x1f525;", "&#x1f602;", "&#x1f62e;", "&#x1f622;"
+  })
+    .index("by_message", ["messageId"])
+    .index("by_user_and_message", ["userId", "messageId"]),
 });

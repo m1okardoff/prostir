@@ -2,7 +2,8 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import React, { memo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { ImageViewerModal } from "./ImageViewerModal";
+import { MessageReactions, ReactionItem } from "./MessageReactions";
+import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 
 interface MessageBubbleProps {
   content: string;
@@ -15,6 +16,10 @@ interface MessageBubbleProps {
   senderId: string;
   audioUrl?: string; // 👈 Нове поле
   audioDuration?: number; // 👈 Нове поле
+  replyToSender?: string;
+  replyToText?: string;
+  reactions?: ReactionItem[];
+  onToggleReaction: (emoji: string) => void;
 }
 
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
@@ -28,6 +33,10 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   senderId,
   audioUrl,
   audioDuration,
+  replyToSender,
+  replyToText,
+  reactions,
+  onToggleReaction,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -40,23 +49,23 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
 
   return (
     <View
-      className={`my-4 max-w-[80%] ${
+      className={`my-1 max-w-[82%] ${
         isMine ? "self-end items-end" : "self-start items-start"
       }`}
     >
       <TouchableOpacity onPress={() => router.push(`/user/${senderId}`)}>
-        <View className="flex-row items-center gap-1 mb-2 ">
+        <View className="flex-row items-center gap-1 mb-1">
           <Image
             source={{
-              uri: senderAvatar
-                ? senderAvatar
-                : "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+              uri:
+                senderAvatar ||
+                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
             }}
-            style={{ width: 25, height: 25, borderRadius: 50 }}
+            style={{ width: 22, height: 22, borderRadius: 50 }}
             contentFit="cover"
           />
           {!isMine && isGroup && (
-            <Text className="text-grey text-[11px] mb-1 ml-2 font-medium">
+            <Text className="text-grey text-[11px] ml-1 font-medium">
               {senderName}
             </Text>
           )}
@@ -70,28 +79,37 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
             : "bg-surface border border-surfaceLight rounded-tl-xs"
         }`}
       >
+        {/* &#x1f448; Блок цитати (Reply Quote Box) */}
+        {replyToSender && (
+          <View className="mb-2 p-2 rounded-lg bg-black/25 border-l-2 border-white/80">
+            <Text className="text-white/90 font-bold text-[11px] mb-0.5">
+              {replyToSender}
+            </Text>
+            <Text numberOfLines={2} className="text-white/70 text-[12px]">
+              {replyToText || "Вкладення"}
+            </Text>
+          </View>
+        )}
+
         {/* Прикріплене зображення */}
         {imageUrl ? (
-          <>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => setIsViewerVisible(true)}
-              className="mb-2 rounded-xl overflow-hidden"
-            >
-              <Image
-                source={{ uri: imageUrl }}
-                style={{ width: 220, height: 220, borderRadius: 12 }}
-                contentFit="cover"
-                transition={200}
-              />
-            </TouchableOpacity>
-
-            <ImageViewerModal
-              visible={isViewerVisible}
-              imageUrl={imageUrl}
-              onClose={() => setIsViewerVisible(false)}
+          <View className="mb-2 rounded-xl overflow-hidden">
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: 220, height: 220, borderRadius: 12 }}
+              contentFit="cover"
+              transition={200}
             />
-          </>
+          </View>
+        ) : null}
+
+        {/* Голосове повідомлення */}
+        {audioUrl ? (
+          <VoiceMessagePlayer
+            audioUrl={audioUrl}
+            duration={audioDuration}
+            isMine={isMine}
+          />
         ) : null}
 
         {/* Текст повідомлення */}
@@ -108,6 +126,13 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
           {timeString}
         </Text>
       </View>
+
+      {/* &#x1f448; Блок емодзі-реакцій під бульбашкою */}
+      <MessageReactions
+        reactions={reactions}
+        onToggleReaction={onToggleReaction}
+        isMine={isMine}
+      />
     </View>
   );
 };

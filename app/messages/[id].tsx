@@ -20,6 +20,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
+import { ReactionPickerModal } from "@/components/ReactionPickerModal";
 
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -45,6 +47,29 @@ export default function ChatRoomScreen() {
   const sendMessageMutation = useMutation(api.messages.sendMessage);
 
   const generateUploadUrlMutation = useMutation(api.messages.generateUploadUrl);
+
+  const [replyingTo, setReplyingTo] = useState<{
+    messageId: string;
+    senderName: string;
+    text: string;
+  } | null>(null);
+
+  const [selectedMessageId, setSelectedMessageId] =
+    useState<Id<"messages"> | null>(null);
+
+  // 2. Мутація перемикання реакцій:
+  const toggleReactionMutation = useMutation(api.messages.toggleReaction);
+
+  const handleToggleReaction = async (
+    messageId: Id<"messages">,
+    emoji: string,
+  ) => {
+    try {
+      await toggleReactionMutation({ messageId, emoji });
+    } catch (error) {
+      console.error("Помилка зміни реакції:", error);
+    }
+  };
 
   // Обробник надсилання голосового повідомлення
   const handleSendAudio = async (audioUri: string, durationSeconds: number) => {
@@ -96,85 +121,33 @@ export default function ChatRoomScreen() {
   const handleSendMessage = async (text: string, selectedImageUri?: string) => {
     try {
       setIsSending(true);
-
       let storageId: Id<"_storage"> | undefined;
 
       if (selectedImageUri) {
-        console.log("Selected image URI:", selectedImageUri);
-
-        // Створюємо File з локального URI
-        const file = new File(selectedImageUri);
-
-        console.log("File exists:", file.exists);
-        console.log("File size:", file.size);
-        console.log("File type:", file.type);
-
-        if (!file.exists) {
-          throw new Error("Файл зображення не існує або більше недоступний.");
-        }
-
-        if (!file.size || file.size <= 0) {
-          throw new Error("Файл зображення порожній.");
-        }
-
-        // Отримуємо URL Convex Storage
         const uploadUrl = await generateUploadUrlMutation();
-
-        console.log("Upload URL:", uploadUrl);
-
+        const file = new File(selectedImageUri);
         const uploadResult = await fetch(uploadUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": file.type || "image/jpeg",
-          },
+          headers: { "Content-Type": "image/jpeg" },
           body: file,
         });
-
-        const responseText = await uploadResult.text();
-
-        console.log("Upload status:", uploadResult.status);
-
-        console.log("Upload response:", responseText);
-
-        if (!uploadResult.ok) {
-          throw new Error(
-            `Не вдалося завантажити зображення: HTTP ${uploadResult.status}${
-              responseText ? ` — ${responseText}` : ""
-            }`,
-          );
-        }
-
-        let json: {
-          storageId?: string;
-        };
-
-        try {
-          json = JSON.parse(responseText);
-        } catch {
-          throw new Error(
-            `Convex повернув некоректну відповідь: ${responseText}`,
-          );
-        }
-
-        if (!json.storageId) {
-          throw new Error(`Convex не повернув storageId: ${responseText}`);
-        }
-
-        storageId = json.storageId as Id<"_storage">;
-
-        console.log("Uploaded storage ID:", storageId);
+        const { storageId: uploadedId } = await uploadResult.json();
+        storageId = uploadedId;
       }
 
+      // Передаємо параметри цитування (якщо є)
       await sendMessageMutation({
         conversationId,
         content: text,
         storageId,
+        replyToId: replyingTo?.messageId as Id<"messages"> | undefined,
+        replyToSender: replyingTo?.senderName,
+        replyToText: replyingTo?.text,
       });
 
-      console.log("Message sent successfully");
+      // Скидаємо стан відповіді
+      setReplyingTo(null);
     } catch (error: any) {
-      console.error("Error sending message:", error);
-
       Alert.alert(
         "Помилка",
         error?.message || "Не вдалося надіслати повідомлення",
@@ -287,18 +260,41 @@ export default function ChatRoomScreen() {
             ) : null
           }
           renderItem={({ item }) => (
-            <MessageBubble
-              content={item.content}
-              imageUrl={item.imageUrl}
-              createdAt={item.createdAt}
+            <SwipeableMessageItem
               isMine={item.isMine}
-              senderName={item.senderName}
-              isGroup={conversation.isGroup}
-              senderAvatar={item.senderAvatar}
-              senderId={item.senderId}
-              audioUrl={item.audioUrl}
-              audioDuration={item.audioDuration}
-            />
+              onReply={() => {
+                setReplyingTo({
+                  messageId: item._id,
+                  senderName: item.senderName,
+                  text:
+                    item.content ||
+                    (item.imageUrl
+                      ? "&#x1f4f7; Фотографія"
+                      : "&#x1f3a4; Голосове"),
+                });
+              }}
+              onDoubleTap={() => handleToggleReaction(item._id, "❤️")}
+              onLongPress={() => setSelectedMessageId(item._id)}
+            >
+              <MessageBubble
+                content={item.content}
+                imageUrl={item.imageUrl}
+                createdAt={item.createdAt}
+                isMine={item.isMine}
+                senderName={item.senderName}
+                isGroup={conversation.isGroup}
+                senderAvatar={item.senderAvatar}
+                senderId={item.senderId}
+                audioUrl={item.audioUrl}
+                audioDuration={item.audioDuration}
+                replyToSender={item.replyToSender}
+                replyToText={item.replyToText}
+                reactions={item.reactions}
+                onToggleReaction={(emoji) =>
+                  handleToggleReaction(item._id, emoji)
+                }
+              />
+            </SwipeableMessageItem>
           )}
           ListEmptyComponent={
             isLoading ? null : (
@@ -324,6 +320,16 @@ export default function ChatRoomScreen() {
           isSending={isSending}
         />
       </KeyboardAvoidingView>
+      {/* Модальне меню швидких емодзі */}
+      <ReactionPickerModal
+        visible={!!selectedMessageId}
+        onClose={() => setSelectedMessageId(null)}
+        onSelectEmoji={(emoji) => {
+          if (selectedMessageId) {
+            handleToggleReaction(selectedMessageId, emoji);
+          }
+        }}
+      />
     </View>
   );
 }

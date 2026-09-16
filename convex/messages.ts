@@ -106,6 +106,39 @@ export const getPaginatedMessages = query({
     const enrichedMessages = await Promise.all(
       paginated.page.map(async (msg) => {
         const sender = await ctx.db.get(msg.senderId);
+
+        // Отримуємо всі реакції для даного повідомлення
+        const reactions = await ctx.db
+          .query("messageReactions")
+          .withIndex("by_message", (q) => q.eq("messageId", msg._id))
+          .collect();
+
+        // Групуємо реакції за емодзі та перевіряємо, чи голосував поточний юзер
+        const reactionMap = new Map<
+          string,
+          { count: number; hasReacted: boolean }
+        >();
+
+        for (const r of reactions) {
+          const item = reactionMap.get(r.emoji) ?? {
+            count: 0,
+            hasReacted: false,
+          };
+          item.count += 1;
+          if (r.userId === currentUserId) {
+            item.hasReacted = true;
+          }
+          reactionMap.set(r.emoji, item);
+        }
+
+        const formattedReactions = Array.from(reactionMap.entries()).map(
+          ([emoji, data]) => ({
+            emoji,
+            count: data.count,
+            hasReacted: data.hasReacted,
+          }),
+        );
+
         return {
           ...msg,
           senderName:
@@ -116,6 +149,7 @@ export const getPaginatedMessages = query({
           senderImage: sender?.image,
           isMine: msg.senderId === currentUserId,
           senderAvatar: sender?.image,
+          reactions: formattedReactions, // &#x1f448; Агреговані реакції
         };
       }),
     );
@@ -135,8 +169,13 @@ export const sendMessage = mutation({
     conversationId: v.id("conversations"),
     content: v.string(),
     storageId: v.optional(v.id("_storage")),
-    audioStorageId: v.optional(v.id("_storage")), // 👈 для аудіо
-    audioDuration: v.optional(v.number()), // 👈 тривалість у секундах
+    audioStorageId: v.optional(v.id("_storage")),
+    audioDuration: v.optional(v.number()),
+
+    // &#x1f448; Нові аргументи для цитування:
+    replyToId: v.optional(v.id("messages")),
+    replyToSender: v.optional(v.string()),
+    replyToText: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const currentUserId = await getAuthUserId(ctx);
@@ -154,18 +193,14 @@ export const sendMessage = mutation({
     }
 
     const trimmedContent = args.content.trim();
-    // Повідомлення вважається валідним, якщо є текст, фото АБО голосове
     if (!trimmedContent && !args.storageId && !args.audioStorageId) {
       throw new Error("Повідомлення не може бути порожнім");
     }
 
-    // Якщо передано storageId — генеруємо публічний URL зображення
     let imageUrl: string | undefined = undefined;
     if (args.storageId) {
       const url = await ctx.storage.getUrl(args.storageId);
-      if (url) {
-        imageUrl = url;
-      }
+      if (url) imageUrl = url;
     }
 
     let audioUrl: string | undefined = undefined;
@@ -176,7 +211,7 @@ export const sendMessage = mutation({
 
     const now = Date.now();
 
-    // Зберігаємо повідомлення в таблицю messages
+    // Зберігаємо повідомлення в таблицю messages разом з полями відповіді
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       senderId: currentUserId,
@@ -187,6 +222,9 @@ export const sendMessage = mutation({
       audioStorageId: args.audioStorageId,
       audioDuration: args.audioDuration,
       createdAt: now,
+      replyToId: args.replyToId,
+      replyToSender: args.replyToSender,
+      replyToText: args.replyToText,
     });
 
     // Формуємо прев'ю останнього повідомлення для списку бесід
@@ -196,9 +234,9 @@ export const sendMessage = mutation({
         const dur = args.audioDuration
           ? ` (${Math.round(args.audioDuration)}с)`
           : "";
-        previewText = `🎤 Голосове повідомлення${dur}`;
+        previewText = `&#x1f3a4; Голосове повідомлення${dur}`;
       } else if (args.storageId) {
-        previewText = "📷 Фотографія";
+        previewText = "&#x1f4f7; Фотографія";
       }
     }
 
@@ -208,5 +246,51 @@ export const sendMessage = mutation({
     });
 
     return messageId;
+  },
+});
+
+export const toggleReaction = mutation({
+  args: {
+    messageId: v.id("messages"),
+    emoji: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Unauthorized: Необхідно авторизуватися");
+    }
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new Error("Повідомлення не знайдено");
+    }
+
+    // Шукаємо, чи поточний користувач уже ставив реакцію на це повідомлення
+    const existing = await ctx.db
+      .query("messageReactions")
+      .withIndex("by_user_and_message", (q) =>
+        q.eq("userId", userId).eq("messageId", args.messageId),
+      )
+      .first();
+
+    if (existing) {
+      if (existing.emoji === args.emoji) {
+        // Якщо натиснули той самий емодзі повторно — видаляємо реакцію
+        await ctx.db.delete(existing._id);
+        return { action: "removed", emoji: args.emoji };
+      } else {
+        // Якщо натиснули інший емодзі — замінюємо його
+        await ctx.db.patch(existing._id, { emoji: args.emoji });
+        return { action: "updated", emoji: args.emoji };
+      }
+    } else {
+      // Додаємо нову реакцію
+      await ctx.db.insert("messageReactions", {
+        messageId: args.messageId,
+        userId,
+        emoji: args.emoji,
+      });
+      return { action: "added", emoji: args.emoji };
+    }
   },
 });
