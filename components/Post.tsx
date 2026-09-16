@@ -8,351 +8,396 @@ import { formatDistanceToNow } from "date-fns";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { CommentsModal } from "./CommentsModal";
-import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+    Alert,
+    Pressable,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import {
+    Gesture,
+    GestureDetector,
+    GestureHandlerRootView,
+} from "react-native-gesture-handler";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withSequence,
-  withDelay,
-  withTiming,
-  cancelAnimation, 
-  runOnJS
-} from 'react-native-reanimated';
+    cancelAnimation,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withSequence,
+    withSpring,
+    withTiming,
+} from "react-native-reanimated";
+import { CommentsModal } from "./CommentsModal";
+
+import { ImageViewerModal } from "./ImageViewerModal";
 
 export type PostProps = {
-  post: {
-    _id: Id<"posts">;
-    userId?: Id<"users">;
-    imageUrl: string;
-    caption?: string;
-    likes: number;
-    comments: number;
-    _creationTime: number;
-    isLiked: boolean;
-    isBookmarked: boolean;
-    author: {
-      _id?: Id<"users">;
-      username: string;
-      image: string;
+    post: {
+        _id: Id<"posts">;
+        userId?: Id<"users">;
+        imageUrl: string;
+        caption?: string;
+        likes: number;
+        comments: number;
+        _creationTime: number;
+        isLiked: boolean;
+        isBookmarked: boolean;
+        author: {
+            _id?: Id<"users">;
+            username: string;
+            image: string;
+        };
     };
-  };
 };
 
 export const Post = ({ post }: PostProps) => {
+    const scale = useSharedValue(0);
+    const opacity = useSharedValue(0);
 
-  const scale = useSharedValue(0);
-  const opacity = useSharedValue(0);
+    const [isLiked, setIsLiked] = useState(post.isLiked);
+    const [likesCount, setLikesCount] = useState(post.likes);
+    const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
+    const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
 
-  const [isLiked, setIsLiked] = useState(post.isLiked);
-  const [likesCount, setLikesCount] = useState(post.likes);
-  const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked);
+    const [commentsCount, setCommentsCount] = useState(post.comments);
+    const [showComments, setShowComments] = useState(false);
 
-  const [commentsCount, setCommentsCount] = useState(post.comments);
-  const [showComments, setShowComments] = useState(false);
+    const currentUser = useQuery(api.users.currentUser);
+    const deletePost = useMutation(api.posts.deletePost);
 
-  const currentUser = useQuery(api.users.currentUser);
-  const deletePost = useMutation(api.posts.deletePost);
+    const isOwner = currentUser?._id === post.userId;
 
-  const isOwner = currentUser?._id === post.userId;
+    const router = useRouter();
 
-  const router = useRouter();
+    const toggleLike = useMutation(api.likes.toggleLike);
+    const toggleBookmark = useMutation(api.bookmarks.toggleBookmark);
 
-  const toggleLike = useMutation(api.likes.toggleLike);
-  const toggleBookmark = useMutation(api.bookmarks.toggleBookmark);
+    const [animateLike, likeAnimatedStyle, likeScale] = useSpring();
+    const [animateBookmark, bookmarkAnimatedStyle, bookmarkScale] = useSpring();
 
-  const [animateLike, likeAnimatedStyle, likeScale] = useSpring();
-  const [animateBookmark, bookmarkAnimatedStyle, bookmarkScale] = useSpring();
+    const handleDelete = () => {
+        Alert.alert(
+            "Видалити пост",
+            "Ви впевнені, що хочете видалити цей пост?",
+            [
+                {
+                    text: "Скасувати",
+                    style: "cancel",
+                },
+                {
+                    text: "Видалити",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await deletePost({
+                                postId: post._id,
+                            });
+                        } catch (error) {
+                            console.error("Помилка видалення поста:", error);
 
-  const handleDelete = () => {
-    Alert.alert("Видалити пост", "Ви впевнені, що хочете видалити цей пост?", [
-      {
-        text: "Скасувати",
-        style: "cancel",
-      },
-      {
-        text: "Видалити",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await deletePost({
-              postId: post._id,
-            });
-          } catch (error) {
-            console.error("Помилка видалення поста:", error);
+                            Alert.alert("Помилка", "Не вдалося видалити пост.");
+                        }
+                    },
+                },
+            ],
+        );
+    };
 
-            Alert.alert("Помилка", "Не вдалося видалити пост.");
-          }
-        },
-      },
-    ]);
-  };
+    const handleLike = async () => {
+        const nextIsLiked = !isLiked;
+        const previousLikesCount = likesCount;
 
-  const handleLike = async () => {
-    const nextIsLiked = !isLiked;
-    const previousLikesCount = likesCount;
+        animateLike(nextIsLiked);
 
-    animateLike(nextIsLiked);
-
-    setIsLiked(nextIsLiked);
-
-    setLikesCount((prev) => (nextIsLiked ? prev + 1 : Math.max(0, prev - 1)));
-
-    try {
-      const serverIsLiked = await toggleLike({
-        postId: post._id,
-      });
-
-      if (serverIsLiked !== nextIsLiked) {
-        setIsLiked(serverIsLiked);
+        setIsLiked(nextIsLiked);
 
         setLikesCount((prev) =>
-          serverIsLiked ? prev + 1 : Math.max(0, prev - 1),
+            nextIsLiked ? prev + 1 : Math.max(0, prev - 1),
         );
 
-        animateLike(serverIsLiked);
-      }
-    } catch (error) {
-      console.error("Помилка оновлення лайка:", error);
+        try {
+            const serverIsLiked = await toggleLike({
+                postId: post._id,
+            });
 
-      setIsLiked(post.isLiked);
-      setLikesCount(previousLikesCount);
+            if (serverIsLiked !== nextIsLiked) {
+                setIsLiked(serverIsLiked);
 
-      cancelAnimation(likeScale);
-      likeScale.value = 1;
-    }
-  };
+                setLikesCount((prev) =>
+                    serverIsLiked ? prev + 1 : Math.max(0, prev - 1),
+                );
 
-  const handleBookmark = async () => {
-    const nextIsBookmarked = !isBookmarked;
+                animateLike(serverIsLiked);
+            }
+        } catch (error) {
+            console.error("Помилка оновлення лайка:", error);
 
-    animateBookmark(nextIsBookmarked);
+            setIsLiked(post.isLiked);
+            setLikesCount(previousLikesCount);
 
-    setIsBookmarked(nextIsBookmarked);
+            cancelAnimation(likeScale);
+            likeScale.value = 1;
+        }
+    };
 
-    try {
-      const serverIsBookmarked = await toggleBookmark({
-        postId: post._id,
-      });
+    const handleBookmark = async () => {
+        const nextIsBookmarked = !isBookmarked;
 
-      if (serverIsBookmarked !== nextIsBookmarked) {
-        setIsBookmarked(serverIsBookmarked);
+        animateBookmark(nextIsBookmarked);
 
-        animateBookmark(serverIsBookmarked);
-      }
-    } catch (error) {
-      console.error("Помилка збереження в закладки:", error);
+        setIsBookmarked(nextIsBookmarked);
 
-      setIsBookmarked(post.isBookmarked);
+        try {
+            const serverIsBookmarked = await toggleBookmark({
+                postId: post._id,
+            });
 
-      cancelAnimation(bookmarkScale);
-      bookmarkScale.value = 1;
-    }
-  };
+            if (serverIsBookmarked !== nextIsBookmarked) {
+                setIsBookmarked(serverIsBookmarked);
+
+                animateBookmark(serverIsBookmarked);
+            }
+        } catch (error) {
+            console.error("Помилка збереження в закладки:", error);
+
+            setIsBookmarked(post.isBookmarked);
+
+            cancelAnimation(bookmarkScale);
+            bookmarkScale.value = 1;
+        }
+    };
 
     const doubleTapGesture = Gesture.Tap()
-    .numberOfTaps(2)
-    .maxDuration(300)
-    .onEnd(() => {
-      scale.value = 0;
-      opacity.value = 1;
+        .numberOfTaps(2)
+        .maxDuration(300)
+        .onEnd(() => {
+            scale.value = 0;
+            opacity.value = 1;
 
-      scale.value = withSequence(
-        withSpring(1.2, { damping: 6, stiffness: 200 }),
-        withDelay(300, withTiming(0, { duration: 250 }))
-      );
+            scale.value = withSequence(
+                withSpring(1.2, { damping: 6, stiffness: 200 }),
+                withDelay(300, withTiming(0, { duration: 250 })),
+            );
 
-      opacity.value = withDelay(400, withTiming(0, { duration: 200 }));
+            opacity.value = withDelay(400, withTiming(0, { duration: 200 }));
 
-      runOnJS(handleLike)();
-    })
+            runOnJS(handleLike)();
+        });
 
-  const heartAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: Math.max(scale.value, 0) }],
-    opacity: opacity.value,
-  }));
+    const heartAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: Math.max(scale.value, 0) }],
+        opacity: opacity.value,
+    }));
 
-  return (
-    <GestureHandlerRootView>
-      <View className="mb-4 bg-black">
-        {/* Хедер поста */}
-        <View className="flex-row items-center justify-between p-3">
-          <TouchableOpacity
-            onPress={() => {
-              if (post.author._id) {
-                if (currentUser?._id === post.author._id) {
-                  router.push("/profile");
-                } else {
-                  router.push(`/user/${post.author._id}`);
-                }
-              }
-            }}
-            activeOpacity={0.8}
-            className="flex-row items-center"
-          >
-            <Image
-              source={{ uri: post.author.image }}
-              style={{ width: 32, height: 32, borderRadius: 16 }}
-              className="w-8 h-8 rounded-full mr-2.5 border border-surfaceLight"
-              contentFit="cover"
-            />
+    return (
+        <GestureHandlerRootView>
+            <View className="mb-4 bg-black">
+                {/* Хедер поста */}
+                <View className="flex-row items-center justify-between p-3">
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (post.author._id) {
+                                if (currentUser?._id === post.author._id) {
+                                    router.push("/profile");
+                                } else {
+                                    router.push(`/user/${post.author._id}`);
+                                }
+                            }
+                        }}
+                        activeOpacity={0.8}
+                        className="flex-row items-center"
+                    >
+                        <Image
+                            source={{ uri: post.author.image }}
+                            style={{ width: 32, height: 32, borderRadius: 16 }}
+                            className="w-8 h-8 rounded-full mr-2.5 border border-surfaceLight"
+                            contentFit="cover"
+                        />
 
-            <Text className="text-white text-sm font-semibold">
-              {post.author.username}
-            </Text>
-          </TouchableOpacity>
+                        <Text className="text-white text-sm font-semibold">
+                            {post.author.username}
+                        </Text>
+                    </TouchableOpacity>
 
-          {isOwner && (
-            <TouchableOpacity
-              onPress={handleDelete}
-              className="p-1 active:opacity-70"
-            >
-              <Ionicons name="trash-outline" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-          )}
-        </View>
+                    {isOwner && (
+                        <TouchableOpacity
+                            onPress={handleDelete}
+                            className="p-1 active:opacity-70"
+                        >
+                            <Ionicons
+                                name="trash-outline"
+                                size={20}
+                                color={COLORS.primary}
+                            />
+                        </TouchableOpacity>
+                    )}
+                </View>
 
-        {/* Изображение поста */}
-        <GestureDetector gesture={doubleTapGesture}>
-          <View>
-            <Image
-              source={{ uri: post.imageUrl }}
-              style={{ width: "100%", aspectRatio: 1 }}
-              className="w-full aspect-square bg-surface"
-              contentFit="cover"
-              transition={200}
-            />
-            <Animated.View style={[styles.heartOverlay, heartAnimatedStyle]}>
-              <Text style={styles.heartText}>❤️</Text>
-            </Animated.View>
-          </View>
-        </GestureDetector>
+                {/* Изображение поста */}
+                <GestureDetector gesture={doubleTapGesture}>
+                    <View>
+                        <Pressable
+                            onPress={() => setIsImageViewerVisible(true)}
+                        >
+                            <Image
+                                source={{ uri: post.imageUrl }}
+                                style={{ width: "100%", aspectRatio: 1 }}
+                                className="w-full aspect-square bg-surface"
+                                contentFit="cover"
+                                transition={200}
+                            />
+                        </Pressable>
+                        <Animated.View
+                            style={[styles.heartOverlay, heartAnimatedStyle]}
+                        >
+                            <Text style={styles.heartText}>❤️</Text>
+                        </Animated.View>
+                    </View>
+                </GestureDetector>
 
-        {/* Рядок дій */}
-        <View className="flex-row items-center justify-between px-3 py-3">
-          <View className="flex-row items-center gap-4">
-            {/* Лайк */}
-            <TouchableOpacity onPress={handleLike} activeOpacity={0.7}>
-              <Animated.View
-                style={[
-                  likeAnimatedStyle,
-                  {
-                    width: 24,
-                    height: 24,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                ]}
-              >
-                <Ionicons
-                  name={isLiked ? "heart" : "heart-outline"}
-                  size={24}
-                  color={isLiked ? "#EF4444" : COLORS.white}
+                {/* Рядок дій */}
+                <View className="flex-row items-center justify-between px-3 py-3">
+                    <View className="flex-row items-center gap-4">
+                        {/* Лайк */}
+                        <TouchableOpacity
+                            onPress={handleLike}
+                            activeOpacity={0.7}
+                        >
+                            <Animated.View
+                                style={[
+                                    likeAnimatedStyle,
+                                    {
+                                        width: 24,
+                                        height: 24,
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    },
+                                ]}
+                            >
+                                <Ionicons
+                                    name={isLiked ? "heart" : "heart-outline"}
+                                    size={24}
+                                    color={isLiked ? "#EF4444" : COLORS.white}
+                                />
+                            </Animated.View>
+                        </TouchableOpacity>
+
+                        {/* Коментарі */}
+                        <TouchableOpacity
+                            onPress={() => setShowComments(true)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name="chatbubble-outline"
+                                size={22}
+                                color={COLORS.white}
+                            />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Закладка */}
+                    <TouchableOpacity
+                        onPress={handleBookmark}
+                        activeOpacity={0.7}
+                    >
+                        <Animated.View
+                            style={[
+                                bookmarkAnimatedStyle,
+                                {
+                                    width: 22,
+                                    height: 22,
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                },
+                            ]}
+                        >
+                            <Ionicons
+                                name={
+                                    isBookmarked
+                                        ? "bookmark"
+                                        : "bookmark-outline"
+                                }
+                                size={22}
+                                color={COLORS.white}
+                            />
+                        </Animated.View>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Информация о посте */}
+                <View className="px-3">
+                    <Text className="text-white text-sm font-semibold mb-1.5">
+                        {likesCount > 0
+                            ? `${likesCount.toLocaleString()} вподобань`
+                            : "Будьте першим, кому це сподобалося"}
+                    </Text>
+
+                    {post.caption ? (
+                        <View className="flex-row flex-wrap mb-1.5">
+                            <Text className="text-white text-sm font-semibold mr-1.5">
+                                {post.author.username}
+                            </Text>
+
+                            <Text className="text-white text-sm flex-1">
+                                {post.caption}
+                            </Text>
+                        </View>
+                    ) : null}
+
+                    {commentsCount > 0 && (
+                        <TouchableOpacity
+                            onPress={() => setShowComments(true)}
+                            className="mt-0.5 mb-1"
+                        >
+                            <Text className="text-grey text-sm">
+                                Переглянути всі {commentsCount} коментарів
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
+                    <Text className="text-grey text-xs mb-2">
+                        {formatDistanceToNow(post._creationTime, {
+                            addSuffix: true,
+                        })}
+                    </Text>
+                </View>
+
+                {/* Модальне вікно коментарів */}
+                {showComments && (
+                    <CommentsModal
+                        postId={post._id}
+                        visible={showComments}
+                        onClose={() => setShowComments(false)}
+                        onCommentsCountChange={setCommentsCount}
+                    />
+                )}
+                <ImageViewerModal
+                    visible={isImageViewerVisible}
+                    imageUrl={post.imageUrl}
+                    onClose={() => setIsImageViewerVisible(false)}
                 />
-              </Animated.View>
-            </TouchableOpacity>
-
-            {/* Коментарі */}
-            <TouchableOpacity
-              onPress={() => setShowComments(true)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="chatbubble-outline"
-                size={22}
-                color={COLORS.white}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Закладка */}
-          <TouchableOpacity onPress={handleBookmark} activeOpacity={0.7}>
-            <Animated.View
-              style={[
-                bookmarkAnimatedStyle,
-                {
-                  width: 22,
-                  height: 22,
-                  alignItems: "center",
-                  justifyContent: "center",
-                },
-              ]}
-            >
-              <Ionicons
-                name={isBookmarked ? "bookmark" : "bookmark-outline"}
-                size={22}
-                color={COLORS.white}
-              />
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Информация о посте */}
-        <View className="px-3">
-          <Text className="text-white text-sm font-semibold mb-1.5">
-            {likesCount > 0
-              ? `${likesCount.toLocaleString()} вподобань`
-              : "Будьте першим, кому це сподобалося"}
-          </Text>
-
-          {post.caption ? (
-            <View className="flex-row flex-wrap mb-1.5">
-              <Text className="text-white text-sm font-semibold mr-1.5">
-                {post.author.username}
-              </Text>
-
-              <Text className="text-white text-sm flex-1">{post.caption}</Text>
             </View>
-          ) : null}
-
-          {commentsCount > 0 && (
-            <TouchableOpacity
-              onPress={() => setShowComments(true)}
-              className="mt-0.5 mb-1"
-            >
-              <Text className="text-grey text-sm">
-                Переглянути всі {commentsCount} коментарів
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <Text className="text-grey text-xs mb-2">
-            {formatDistanceToNow(post._creationTime, {
-              addSuffix: true,
-            })}
-          </Text>
-        </View>
-
-        {/* Модальне вікно коментарів */}
-        {showComments && (
-          <CommentsModal
-            postId={post._id}
-            visible={showComments}
-            onClose={() => setShowComments(false)}
-            onCommentsCountChange={setCommentsCount}
-          />
-        )}
-      </View>
-    </GestureHandlerRootView>
-  );
+        </GestureHandlerRootView>
+    );
 };
 
-
 const styles = StyleSheet.create({
-  heartOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-    pointerEvents: 'none',
-  },
-  heartText: {
-    fontSize: 84,
-  },
+    heartOverlay: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 10,
+        pointerEvents: "none",
+    },
+    heartText: {
+        fontSize: 84,
+    },
 });
