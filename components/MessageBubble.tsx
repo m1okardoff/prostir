@@ -1,8 +1,8 @@
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
+import { ImageViewerModal } from "./ImageViewerModal";
 
 interface MessageBubbleProps {
   content: string;
@@ -36,6 +36,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   });
 
   const router = useRouter();
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
 
   return (
     <View
@@ -71,22 +72,26 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
       >
         {/* Прикріплене зображення */}
         {imageUrl ? (
-          <View className="mb-2 rounded-xl overflow-hidden">
-            <Image
-              source={{ uri: imageUrl }}
-              style={{ width: 220, height: 220, borderRadius: 12 }}
-              contentFit="cover"
-              transition={200}
-            />
-          </View>
-        ) : null}
+          <>
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setIsViewerVisible(true)}
+              className="mb-2 rounded-xl overflow-hidden"
+            >
+              <Image
+                source={{ uri: imageUrl }}
+                style={{ width: 220, height: 220, borderRadius: 12 }}
+                contentFit="cover"
+                transition={200}
+              />
+            </TouchableOpacity>
 
-        {audioUrl ? (
-          <VoiceMessagePlayer
-            audioUrl={audioUrl}
-            duration={audioDuration}
-            isMine={isMine}
-          />
+            <ImageViewerModal
+              visible={isViewerVisible}
+              imageUrl={imageUrl}
+              onClose={() => setIsViewerVisible(false)}
+            />
+          </>
         ) : null}
 
         {/* Текст повідомлення */}
@@ -108,4 +113,3 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
 };
 
 export const MessageBubble = memo(MessageBubbleComponent);
-
