@@ -65,12 +65,11 @@ export default function MessagesScreen() {
               text: "Покинути",
               style: "destructive",
               onPress: async () => {
-                if (!currentUser?._id) 
-                  return
+                if (!currentUser?._id) return;
                 await removeParticipantMutation({
                   conversationId: item._id,
-                  targetUserId: currentUser?._id,
-                }),
+                  targetUserId: currentUser._id,
+                });
               },
             },
           ],
