@@ -1,6 +1,6 @@
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 /**
  * Отримує всі бесіди, у яких бере участь поточний користувач
@@ -16,13 +16,14 @@ export const getConversations = query({
 
     // Фільтруємо ті, де поточний користувач є в списку учасників
     const userConversations = allConversations.filter((c) =>
-      c.participantIds.includes(userId)
+      c.participantIds.includes(userId),
     );
 
     // Сортуємо: новіші зверху (за lastMessageAt або _creationTime)
     userConversations.sort(
       (a, b) =>
-        (b.lastMessageAt ?? b._creationTime) - (a.lastMessageAt ?? a._creationTime)
+        (b.lastMessageAt ?? b._creationTime) -
+        (a.lastMessageAt ?? a._creationTime),
     );
 
     // Збагачуємо даними співрозмовників
@@ -39,7 +40,7 @@ export const getConversations = query({
 
         // Отримуємо список аватарів учасників (для груп)
         const participants = await Promise.all(
-          conv.participantIds.map((id) => ctx.db.get(id))
+          conv.participantIds.map((id) => ctx.db.get(id)),
         );
 
         return {
@@ -55,7 +56,7 @@ export const getConversations = query({
           participantCount: conv.participantIds.length,
           participants: participants.filter((p) => p !== null),
         };
-      })
+      }),
     );
 
     return enriched;
@@ -84,7 +85,7 @@ export const getOrCreateDirectConversation = mutation({
         !c.isGroup &&
         c.participantIds.length === 2 &&
         c.participantIds.includes(currentUserId) &&
-        c.participantIds.includes(args.participantId)
+        c.participantIds.includes(args.participantId),
     );
 
     if (existing) {
@@ -125,7 +126,7 @@ export const createGroupConversation = mutation({
 
     // Обов'язково додаємо творця до масиву учасників (без дублювання)
     const uniqueParticipants = Array.from(
-      new Set([currentUserId, ...args.participantIds])
+      new Set([currentUserId, ...args.participantIds]),
     );
 
     if (uniqueParticipants.length < 2) {
@@ -147,7 +148,7 @@ export const createGroupConversation = mutation({
     await ctx.db.insert("messages", {
       conversationId,
       senderId: currentUserId,
-      content: "&#x1f389; Груповий чат створено",
+      content: "🎉 Груповий чат створено",
       createdAt: now,
       isSystem: true,
     });
@@ -168,14 +169,14 @@ export const getConversation = query({
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) return null;
 
-    if (!conversation.participantIds.includes(currentUserId)) {
-      throw new Error("Access denied: Ви не є учасником цієї бесіди");
-    }
+    // if (!conversation.participantIds.includes(currentUserId)) {
+    //   throw new Error("Access denied: Ви не є учасником цієї бесіди");
+    // }
 
     let otherUser = null;
     if (!conversation.isGroup) {
       const otherUserId = conversation.participantIds.find(
-        (id) => id !== currentUserId
+        (id) => id !== currentUserId,
       );
       if (otherUserId) {
         otherUser = await ctx.db.get(otherUserId);
@@ -206,7 +207,7 @@ export const getConversation = query({
           image: user.image,
           role,
         };
-      })
+      }),
     );
     return {
       ...conversation,
@@ -220,16 +221,17 @@ export const getConversation = query({
           }
         : null,
       participants: participants.filter(
-        (p): p is NonNullable<typeof p> => p !== null
+        (p): p is NonNullable<typeof p> => p !== null,
       ),
       currentUserRole: isCreator
         ? "creator"
         : isAdmin
-        ? "admin"
-        : ("member" as "creator" | "admin" | "member"),
+          ? "admin"
+          : ("member" as "creator" | "admin" | "member"),
       canManageMembers: isAdmin || isCreator,
       canDeleteChat: isCreator || !conversation.isGroup,
-    };  },
+    };
+  },
 });
 
 export const addParticipantsToConversation = mutation({
@@ -263,7 +265,7 @@ export const addParticipantsToConversation = mutation({
 
     // Залишаємо тільки тих, кого ще немає в чаті
     const toAdd = args.newParticipantIds.filter(
-      (id) => !conversation.participantIds.includes(id)
+      (id) => !conversation.participantIds.includes(id),
     );
 
     if (toAdd.length === 0) {
@@ -287,7 +289,7 @@ export const addParticipantsToConversation = mutation({
       .map((u) => u?.username ?? u?.name ?? "учасника")
       .join(", ");
 
-    const systemContent = `&#x1f44b; ${actorName} додав(ла) до групи: ${addedNames}`;
+    const systemContent = `👋 ${actorName} додав(ла) до групи: ${addedNames}`;
 
     await ctx.db.insert("messages", {
       conversationId: args.conversationId,
@@ -356,8 +358,8 @@ export const updateParticipantRole = mutation({
 
     const systemContent =
       args.newRole === "admin"
-        ? `&#x1f6e1;️ ${actorName} призначив(ла) ${targetName} адміністратором`
-        : `&#x1f464; ${actorName} зняв(ла) права адміністратора у ${targetName}`;
+        ? `🛡️ ${actorName} призначив(ла) ${targetName} адміністратором`
+        : `👤 ${actorName} зняв(ла) права адміністратора у ${targetName}`;
 
     const now = Date.now();
     await ctx.db.insert("messages", {
@@ -407,7 +409,7 @@ export const removeParticipant = mutation({
       // Якщо творець намагається вийти і він єдиний залишився
       if (isCreator && conversation.participantIds.length > 1) {
         throw new Error(
-          "Творець не може покинути групу, поки в ній є інші учасники. Видаліть групу або передайте права."
+          "Творець не може покинути групу, поки в ній є інші учасники. Видаліть групу або передайте права.",
         );
       }
     } else {
@@ -426,7 +428,7 @@ export const removeParticipant = mutation({
     }
 
     const updatedParticipants = conversation.participantIds.filter(
-      (id) => id !== args.targetUserId
+      (id) => id !== args.targetUserId,
     );
     const updatedAdminIds = adminIds.filter((id) => id !== args.targetUserId);
 
@@ -442,8 +444,8 @@ export const removeParticipant = mutation({
     const targetName = target?.username ?? target?.name ?? "Користувач";
 
     const systemContent = isSelf
-      ? `&#x1f6aa; ${targetName} залишив(ла) групу`
-      : `&#x1f6ab; ${actorName} вилучив(ла) ${targetName} з групи`;
+      ? `🚪 ${targetName} залишив(ла) групу`
+      : `🚫 ${actorName} вилучив(ла) ${targetName} з групи`;
 
     const now = Date.now();
     await ctx.db.insert("messages", {
@@ -489,7 +491,7 @@ export const deleteConversation = mutation({
     const messages = await ctx.db
       .query("messages")
       .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId)
+        q.eq("conversationId", args.conversationId),
       )
       .collect();
 

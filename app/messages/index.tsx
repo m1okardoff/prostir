@@ -15,6 +15,7 @@ import {
 
 export default function MessagesScreen() {
   const conversations = useQuery(api.conversations.getConversations);
+  const currentUser = useQuery(api.users.currentUser);
 
   const deleteConversationMutation = useMutation(
     api.conversations.deleteConversation,
@@ -22,11 +23,13 @@ export default function MessagesScreen() {
   const removeParticipantMutation = useMutation(
     api.conversations.removeParticipant,
   );
-  const currentUser = useQuery(api.users.currentUser);
 
   const handleLongPressChat = (item: any) => {
-    if (item.isGroup) {
-      if (item.creatorId === currentUser?._id) {
+    const isGroup = item.isGroup;
+    const isCreator = currentUser?._id && item.creatorId === currentUser._id;
+
+    if (isGroup) {
+      if (isCreator) {
         Alert.alert(
           "Керування групою",
           `Оберіть дію для групи «${item.name}»:`,
@@ -37,17 +40,22 @@ export default function MessagesScreen() {
               style: "destructive",
               onPress: () => {
                 Alert.alert(
-                  "Підтвердження",
-                  "Безповоротно видалити групу та всі повідомлення?",
+                  "Підтвердження видалення",
+                  "Видалити цей чат та всі повідомлення для всіх учасників?",
                   [
                     { text: "Скасувати", style: "cancel" },
                     {
                       text: "Видалити",
                       style: "destructive",
-                      onPress: () =>
-                        deleteConversationMutation({
-                          conversationId: item._id,
-                        }),
+                      onPress: async () => {
+                        try {
+                          await deleteConversationMutation({
+                            conversationId: item._id,
+                          });
+                        } catch (e: any) {
+                          Alert.alert("Помилка", e.message);
+                        }
+                      },
                     },
                   ],
                 );
@@ -65,25 +73,36 @@ export default function MessagesScreen() {
               text: "Покинути",
               style: "destructive",
               onPress: async () => {
-                if (!currentUser?._id) return;
-                await removeParticipantMutation({
-                  conversationId: item._id,
-                  targetUserId: currentUser._id,
-                });
+                try {
+                  if (!currentUser?._id) return;
+                  await removeParticipantMutation({
+                    conversationId: item._id,
+                    targetUserId: currentUser._id,
+                  });
+                } catch (e: any) {
+                  Alert.alert("Помилка", e.message);
+                }
               },
             },
           ],
         );
       }
     } else {
-      // Особистий 1-на-1 діалог
+      // 1-on-1 чат
       Alert.alert("Видалити діалог", "Видалити це листування?", [
         { text: "Скасувати", style: "cancel" },
         {
           text: "Видалити",
           style: "destructive",
-          onPress: () =>
-            deleteConversationMutation({ conversationId: item._id }),
+          onPress: async () => {
+            try {
+              await deleteConversationMutation({
+                conversationId: item._id,
+              });
+            } catch (e: any) {
+              Alert.alert("Помилка", e.message);
+            }
+          },
         },
       ]);
     }
@@ -111,7 +130,6 @@ export default function MessagesScreen() {
           <Text className="text-xl font-bold text-white">Повідомлення</Text>
         </View>
 
-        {/* Кнопка створення нового чату/групи */}
         <TouchableOpacity
           onPress={() => router.push("/messages/new")}
           className="p-1 active:opacity-70"
@@ -127,7 +145,6 @@ export default function MessagesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingVertical: 8 }}
         renderItem={({ item }) => {
-          // Визначаємо назву чату та аватарку
           const title = item.isGroup
             ? (item.name ?? "Груповий чат")
             : item.otherUser?.fullname ||
@@ -135,7 +152,6 @@ export default function MessagesScreen() {
               "Користувач";
 
           const avatarUrl = item.isGroup ? null : item.otherUser?.image;
-
           const lastMsg = item.lastMessage || "Немає повідомлень";
           const formattedDate = item.lastMessageAt
             ? new Date(item.lastMessageAt).toLocaleDateString([], {
@@ -147,9 +163,10 @@ export default function MessagesScreen() {
           return (
             <TouchableOpacity
               onPress={() => router.push(`/messages/${item._id}`)}
+              onLongPress={() => handleLongPressChat(item)}
+              delayLongPress={400}
               className="flex-row items-center px-4 py-3 active:bg-surface border-b border-surface/40"
             >
-              {/* Аватарка */}
               {item.isGroup ? (
                 <View className="w-12 h-12 rounded-full bg-surfaceLight border border-surface items-center justify-center mr-3">
                   <Ionicons name="people" size={24} color={COLORS.primary} />
@@ -171,7 +188,6 @@ export default function MessagesScreen() {
                 />
               )}
 
-              {/* Інформація про бесіду */}
               <View className="flex-1 justify-center">
                 <View className="flex-row items-center justify-between mb-1">
                   <Text
