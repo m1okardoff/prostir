@@ -329,6 +329,7 @@ export default function ChatRoomScreen() {
                 onToggleReaction={(emoji) =>
                   handleToggleReaction(item._id, emoji)
                 }
+                isSystem={item.isSystem}
               />
             </SwipeableMessageItem>
           )}
