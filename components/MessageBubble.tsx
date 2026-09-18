@@ -20,6 +20,7 @@ interface MessageBubbleProps {
   replyToText?: string;
   reactions?: ReactionItem[];
   onToggleReaction: (emoji: string) => void;
+  isSystem?: boolean; // &#x1f448; Додаємо для підтримки системних повідомлень
 }
 
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
@@ -37,6 +38,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   replyToText,
   reactions,
   onToggleReaction,
+  isSystem = false,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -46,6 +48,18 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
 
   const router = useRouter();
   const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  if (isSystem) {
+    return (
+      <View className="my-2.5 items-center justify-center px-6">
+        <View className="bg-surfaceLight/80 px-3.5 py-1.5 rounded-full border border-surface">
+          <Text className="text-grey text-[11px] font-medium text-center">
+            {content}
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View
