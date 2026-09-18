@@ -1,19 +1,94 @@
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
-import { router } from "expo-router";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/theme";
+import { api } from "@/convex/_generated/api";
+import { Ionicons } from "@expo/vector-icons";
+import { useMutation, useQuery } from "convex/react";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function MessagesScreen() {
   const conversations = useQuery(api.conversations.getConversations);
+
+  const deleteConversationMutation = useMutation(
+    api.conversations.deleteConversation,
+  );
+  const removeParticipantMutation = useMutation(
+    api.conversations.removeParticipant,
+  );
+  const currentUser = useQuery(api.users.currentUser);
+
+  const handleLongPressChat = (item: any) => {
+    if (item.isGroup) {
+      if (item.creatorId === currentUser?._id) {
+        Alert.alert(
+          "Керування групою",
+          `Оберіть дію для групи «${item.name}»:`,
+          [
+            { text: "Скасувати", style: "cancel" },
+            {
+              text: "Видалити групу для всіх",
+              style: "destructive",
+              onPress: () => {
+                Alert.alert(
+                  "Підтвердження",
+                  "Безповоротно видалити групу та всі повідомлення?",
+                  [
+                    { text: "Скасувати", style: "cancel" },
+                    {
+                      text: "Видалити",
+                      style: "destructive",
+                      onPress: () =>
+                        deleteConversationMutation({
+                          conversationId: item._id,
+                        }),
+                    },
+                  ],
+                );
+              },
+            },
+          ],
+        );
+      } else {
+        Alert.alert(
+          "Покинути групу",
+          `Ви впевнені, що хочете покинути «${item.name}»?`,
+          [
+            { text: "Скасувати", style: "cancel" },
+            {
+              text: "Покинути",
+              style: "destructive",
+              onPress: async () => {
+                if (!currentUser?._id) 
+                  return
+                await removeParticipantMutation({
+                  conversationId: item._id,
+                  targetUserId: currentUser?._id,
+                }),
+              },
+            },
+          ],
+        );
+      }
+    } else {
+      // Особистий 1-на-1 діалог
+      Alert.alert("Видалити діалог", "Видалити це листування?", [
+        { text: "Скасувати", style: "cancel" },
+        {
+          text: "Видалити",
+          style: "destructive",
+          onPress: () =>
+            deleteConversationMutation({ conversationId: item._id }),
+        },
+      ]);
+    }
+  };
 
   if (conversations === undefined) {
     return (

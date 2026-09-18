@@ -1,14 +1,20 @@
 import { ChatInput } from "@/components/ChatInput";
+import { GroupInfoModal } from "@/components/GroupInfoModal";
 import { MessageBubble } from "@/components/MessageBubble";
+import {
+  ReactionPickerModal,
+  ReactionPickerPosition,
+} from "@/components/ReactionPickerModal";
+import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Ionicons } from "@expo/vector-icons";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { File } from "expo-file-system";
-import { fetch } from "expo/fetch";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
+import { fetch } from "expo/fetch";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -20,8 +26,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
-import { ReactionPickerModal, ReactionPickerPosition } from "@/components/ReactionPickerModal";
 
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -159,6 +163,8 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const [isGroupInfoVisible, setIsGroupInfoVisible] = useState(false);
+
   if (conversation === undefined || (isLoading && messages.length === 0)) {
     return (
       <View className="flex-1 bg-black justify-center items-center">
@@ -195,43 +201,69 @@ export default function ChatRoomScreen() {
   return (
     <View className="flex-1 bg-black">
       {/* Хедер чату */}
-      <View className="flex-row items-center px-4 py-3 border-b border-surface">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-surface">
+        <View className="flex-row items-center flex-1 mr-2">
+          <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        {conversation.isGroup ? (
-          <View className="w-10 h-10 rounded-full bg-surfaceLight border border-surface items-center justify-center mr-3">
-            <Ionicons name="people" size={20} color={COLORS.primary} />
-          </View>
-        ) : (
-          <Image
-            source={{
-              uri:
-                headerAvatar ??
-                "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-            }}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              marginRight: 12,
-            }}
-            contentFit="cover"
-          />
-        )}
+          {/* Натискання на аватар та назву для відкриття інфо */}
+          <TouchableOpacity
+            onPress={() => conversation.isGroup && setIsGroupInfoVisible(true)}
+            disabled={!conversation.isGroup}
+            className="flex-row items-center flex-1"
+          >
+            {conversation.isGroup ? (
+              <View className="w-10 h-10 rounded-full bg-surfaceLight border border-surface items-center justify-center mr-3">
+                <Ionicons name="people" size={20} color={COLORS.primary} />
+              </View>
+            ) : (
+              <Image
+                source={{
+                  uri:
+                    headerAvatar ??
+                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  marginRight: 12,
+                }}
+                contentFit="cover"
+              />
+            )}
 
-        <View className="flex-1 justify-center">
-          <Text numberOfLines={1} className="text-white font-bold text-base">
-            {headerTitle}
-          </Text>
+            <View className="flex-1 justify-center">
+              <Text
+                numberOfLines={1}
+                className="text-white font-bold text-base"
+              >
+                {headerTitle}
+              </Text>
 
-          <Text className="text-grey text-xs">
-            {conversation.isGroup
-              ? `${conversation.participants.length} учасників`
-              : `@${conversation.otherUser?.username ?? "user"}`}
-          </Text>
+              <Text className="text-grey text-xs">
+                {conversation.isGroup
+                  ? `${conversation.participants.length} учасників • Натисніть для інфо`
+                  : `@${conversation.otherUser?.username ?? "user"}`}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
+
+        {/* Кнопка налаштувань / інформації про групу */}
+        {conversation.isGroup && (
+          <TouchableOpacity
+            onPress={() => setIsGroupInfoVisible(true)}
+            className="p-1 active:opacity-70"
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={24}
+              color={COLORS.primary}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <KeyboardAvoidingView
@@ -337,6 +369,20 @@ export default function ChatRoomScreen() {
           }
         }}
       />
+      {conversation.isGroup && (
+        <GroupInfoModal
+          visible={isGroupInfoVisible}
+          onClose={() => setIsGroupInfoVisible(false)}
+          conversationId={conversationId}
+          groupName={conversation.name ?? "Груповий чат"}
+          creatorId={conversation.creatorId}
+          participants={conversation.participants}
+          currentUserRole={conversation.currentUserRole}
+          canManageMembers={conversation.canManageMembers}
+          canDeleteChat={conversation.canDeleteChat}
+          onConversationDeleted={() => router.replace("/messages")}
+        />
+      )}
     </View>
   );
 }
