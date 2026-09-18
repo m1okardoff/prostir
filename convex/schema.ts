@@ -81,6 +81,7 @@ export default defineSchema({
     creatorId: v.id("users"), // Автор/творець чату
     lastMessage: v.optional(v.string()), // Текст останнього повідомлення для списку чатів
     lastMessageAt: v.optional(v.number()), // Час останнього повідомлення (для сортування)
+    adminIds: v.optional(v.array(v.id("users"))), // &#x1f448; НОВЕ ПОЛЕ: Список ID адміністраторів чату
   }),
 
   messages: defineTable({
@@ -96,6 +97,7 @@ export default defineSchema({
     replyToId: v.optional(v.id("messages")),
     replyToSender: v.optional(v.string()),
     replyToText: v.optional(v.string()),
+    isSystem: v.optional(v.boolean()), // &#x1f448; НОВЕ ПОЛЕ: true для системних сповіщень (додавання, вилучення, ролі)
   })
     .index("by_conversation", ["conversationId"])
     .index("by_created_at", ["createdAt"]),

@@ -47,6 +47,7 @@ export const getMessages = query({
         const sender = await ctx.db.get(msg.senderId);
         return {
           ...msg,
+          isSystem: msg.isSystem ?? false,
           senderName:
             sender?.username ??
             sender?.fullname ??
@@ -141,6 +142,7 @@ export const getPaginatedMessages = query({
 
         return {
           ...msg,
+          isSystem: msg.isSystem ?? false,
           senderName:
             sender?.username ??
             sender?.fullname ??
