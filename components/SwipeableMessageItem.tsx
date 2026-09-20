@@ -20,6 +20,7 @@ interface SwipeableMessageItemProps {
   // Тепер передаємо позицію для показу пікера над повідомленням
   onLongPress: (position: ReactionPickerPosition) => void;
   isMine: boolean;
+  isSystem: boolean;
 }
 
 const SWIPE_THRESHOLD = 50; // Поріг активації відповіді (пікселі)
@@ -30,6 +31,7 @@ export const SwipeableMessageItem: React.FC<SwipeableMessageItemProps> = ({
   onDoubleTap,
   onLongPress,
   isMine,
+  isSystem = false,
 }) => {
   const translateX = useSharedValue(0);
 

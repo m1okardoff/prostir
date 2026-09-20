@@ -295,6 +295,7 @@ export default function ChatRoomScreen() {
           }
           renderItem={({ item }) => (
             <SwipeableMessageItem
+              isSystem={item.isSystem}
               isMine={item.isMine}
               onReply={() => {
                 setReplyingTo({
