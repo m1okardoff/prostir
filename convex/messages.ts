@@ -140,8 +140,26 @@ export const getPaginatedMessages = query({
           }),
         );
 
+        let videoUrl = msg.videoUrl;
+        if (!videoUrl && msg.videoStorageId) {
+          videoUrl = (await ctx.storage.getUrl(msg.videoStorageId)) ?? undefined;
+        }
+
+        let imageUrl = msg.imageUrl;
+        if (!imageUrl && msg.storageId) {
+          imageUrl = (await ctx.storage.getUrl(msg.storageId)) ?? undefined;
+        }
+
+        let audioUrl = msg.audioUrl;
+        if (!audioUrl && msg.audioStorageId) {
+          audioUrl = (await ctx.storage.getUrl(msg.audioStorageId)) ?? undefined;
+        }
+
         return {
           ...msg,
+          imageUrl,
+          audioUrl,
+          videoUrl,
           isSystem: msg.isSystem ?? false,
           senderName:
             sender?.username ??
@@ -151,7 +169,7 @@ export const getPaginatedMessages = query({
           senderImage: sender?.image,
           isMine: msg.senderId === currentUserId,
           senderAvatar: sender?.image,
-          reactions: formattedReactions, // &#x1f448; Агреговані реакції
+          reactions: formattedReactions, // 👈 Агреговані реакції
         };
       }),
     );

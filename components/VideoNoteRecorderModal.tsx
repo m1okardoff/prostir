@@ -40,6 +40,7 @@ export const VideoNoteRecorderModal: React.FC<VideoNoteRecorderModalProps> = ({
 
   const cameraRef = useRef<CameraView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordedSecondsRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -74,16 +75,15 @@ export const VideoNoteRecorderModal: React.FC<VideoNoteRecorderModalProps> = ({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsRecording(true);
       setRecordedSeconds(0);
+      recordedSecondsRef.current = 0;
 
       // Запускаємо щосекундний відлік
       timerRef.current = setInterval(() => {
-        setRecordedSeconds((prev) => {
-          if (prev >= MAX_RECORDING_DURATION - 1) {
-            handleStopRecording();
-            return MAX_RECORDING_DURATION;
-          }
-          return prev + 1;
-        });
+        recordedSecondsRef.current += 1;
+        setRecordedSeconds(recordedSecondsRef.current);
+        if (recordedSecondsRef.current >= MAX_RECORDING_DURATION) {
+          handleStopRecording();
+        }
       }, 1000);
 
       if (cameraRef.current) {
@@ -92,34 +92,52 @@ export const VideoNoteRecorderModal: React.FC<VideoNoteRecorderModalProps> = ({
         });
 
         if (video?.uri) {
-          setIsProcessing(true);
-          const duration = recordedSeconds > 0 ? recordedSeconds : 1;
-          await onFinishRecording(video.uri, duration);
-          setIsProcessing(false);
-          onClose();
+          try {
+            setIsProcessing(true);
+            const duration =
+              recordedSecondsRef.current > 0 ? recordedSecondsRef.current : 1;
+            await onFinishRecording(video.uri, duration);
+          } catch (err: any) {
+            console.error("Помилка надсилання відео:", err);
+            Alert.alert("Помилка", err?.message || "Не вдалося надіслати відео.");
+          } finally {
+            setIsProcessing(false);
+            setRecordedSeconds(0);
+            recordedSecondsRef.current = 0;
+            onClose();
+          }
         }
       }
     } catch (error: any) {
       console.error("Помилка запису відео:", error);
       Alert.alert("Помилка", "Не вдалося записати відеоповідомлення.");
       setIsRecording(false);
+      setIsProcessing(false);
     }
   };
 
   const handleStopRecording = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     setIsRecording(false);
     cameraRef.current?.stopRecording();
   };
 
   const handleCancel = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (isRecording) {
       cameraRef.current?.stopRecording();
     }
     setIsRecording(false);
+    setIsProcessing(false);
     setRecordedSeconds(0);
+    recordedSecondsRef.current = 0;
     onClose();
   };
 
@@ -242,7 +260,14 @@ export const VideoNoteRecorderModal: React.FC<VideoNoteRecorderModalProps> = ({
               onPress={handleStopRecording}
               disabled={isProcessing}
               activeOpacity={0.8}
-              className="w-20 h-20 rounded-full bg-primary items-center justify-center shadow-lg shadow-primary/50"
+              className="w-20 h-20 rounded-full bg-primary items-center justify-center"
+              style={{
+                shadowColor: COLORS.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.5,
+                shadowRadius: 8,
+                elevation: 6,
+              }}
             >
               <Ionicons name="stop" size={32} color="#FFFFFF" />
             </TouchableOpacity>

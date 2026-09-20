@@ -395,6 +395,9 @@ export default function ChatRoomScreen() {
                   senderId={item.senderId}
                   audioUrl={item.audioUrl}
                   audioDuration={item.audioDuration}
+                  videoUrl={item.videoUrl}
+                  videoDuration={item.videoDuration}
+                  isVideoNote={item.isVideoNote}
                   replyToSender={item.replyToSender}
                   replyToText={item.replyToText}
                   reactions={item.reactions}

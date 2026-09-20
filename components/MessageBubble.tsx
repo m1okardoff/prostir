@@ -94,10 +94,14 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
       </TouchableOpacity>
 
       <View
-        className={`px-3 py-2 rounded-2xl ${
-          isMine
-            ? "bg-primary rounded-tr-xs"
-            : "bg-surface border border-surfaceLight rounded-tl-xs"
+        className={`rounded-2xl ${
+          isVideoNote && !content
+            ? "bg-transparent p-0"
+            : `px-3 py-2 ${
+                isMine
+                  ? "bg-primary rounded-tr-xs"
+                  : "bg-surface border border-surfaceLight rounded-tl-xs"
+              }`
         }`}
       >
         {/* 👈 Блок цитати (Reply Quote Box) */}
@@ -151,7 +155,11 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
         {/* Час відправки */}
         <Text
           className={`text-[10px] mt-1 self-end ${
-            isMine ? "text-white/70" : "text-grey"
+            isVideoNote && !content
+              ? "text-grey/80"
+              : isMine
+              ? "text-white/70"
+              : "text-grey"
           }`}
         >
           {timeString}

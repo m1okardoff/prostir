@@ -53,9 +53,15 @@ export default function ProfileScreen() {
   if (user === null) {
     return (
       <View className="flex-1 bg-black justify-center items-center p-6">
-        <Text className="text-white text-base text-center">
-          Будь ласка, увійдіть у додаток
+        <Text className="text-white text-base text-center mb-4">
+          Сесія застаріла або не знайдена
         </Text>
+        <TouchableOpacity
+          onPress={() => signOut()}
+          className="bg-primary px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Увійти знову</Text>
+        </TouchableOpacity>
       </View>
     );
   }
