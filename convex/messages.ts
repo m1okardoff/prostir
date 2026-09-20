@@ -179,7 +179,6 @@ export const sendMessage = mutation({
     videoDuration: v.optional(v.number()),
     isVideoNote: v.optional(v.boolean()),
 
-    // &#x1f448; Нові аргументи для цитування:
     replyToId: v.optional(v.id("messages")),
     replyToSender: v.optional(v.string()),
     replyToText: v.optional(v.string()),
@@ -200,7 +199,12 @@ export const sendMessage = mutation({
     }
 
     const trimmedContent = args.content.trim();
-    if (!trimmedContent && !args.storageId && !args.audioStorageId) {
+    if (
+      !trimmedContent &&
+      !args.storageId &&
+      !args.audioStorageId &&
+      !args.videoStorageId
+    ) {
       throw new Error("Повідомлення не може бути порожнім");
     }
 
@@ -225,7 +229,6 @@ export const sendMessage = mutation({
 
     const now = Date.now();
 
-    // Зберігаємо повідомлення в таблицю messages разом з полями відповіді
     const messageId = await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       senderId: currentUserId,
@@ -245,12 +248,12 @@ export const sendMessage = mutation({
       replyToText: args.replyToText,
     });
 
-    // Формуємо прев'ю останнього повідомлення для списку бесід
+    // Формуємо текст останнього повідомлення для списку бесід
     let previewText = trimmedContent;
     if (!previewText) {
-      if (args.audioStorageId) {
-        const dur = args.audioDuration
-          ? ` (${Math.round(args.audioDuration)}с)`
+      if (args.isVideoNote) {
+        const dur = args.videoDuration
+          ? ` (${Math.round(args.videoDuration)}с)`
           : "";
         previewText = `&#x1f4f9; Відеоповідомлення${dur}`;
       } else if (args.audioStorageId) {

@@ -75,7 +75,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             "Додатку Prostir потрібен доступ до мікрофона для запису голосових повідомлень.",
         },
       ],
-
       [
         "expo-camera",
         {
@@ -88,9 +87,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           recordAudioAndroid: true,
         },
       ],
-
-      "expo-video",
-
       [
         "expo-splash-screen",
         {
