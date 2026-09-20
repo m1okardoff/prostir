@@ -69,7 +69,15 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
     const nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
     const nextSpeed = speeds[nextIndex];
     setPlaybackSpeed(nextSpeed);
-    player.playbackRate = nextSpeed;
+    try {
+      if (typeof (player as any).setPlaybackRate === "function") {
+        (player as any).setPlaybackRate(nextSpeed);
+      } else {
+        player.playbackRate = nextSpeed;
+      }
+    } catch (e) {
+      console.warn("Помилка зміни швидкості відео:", e);
+    }
   };
 
   // Розрахунок геометрії кола
@@ -170,13 +178,16 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
             </Text>
           )}
         </TouchableOpacity>
+        {/* Бейдж перемикання швидкості */}
         <TouchableOpacity
           onPress={(e) => {
             e.stopPropagation();
             handleToggleSpeed();
           }}
           activeOpacity={0.8}
-          className={`absolute top-2.5 right-3 px-2 py-0.5 rounded-full border ${
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={{ zIndex: 10 }}
+          className={`absolute top-2.5 px-2.5 py-0.5 rounded-full border ${
             playbackSpeed > 1
               ? "bg-primary border-primary"
               : "bg-black/70 border-white/20"

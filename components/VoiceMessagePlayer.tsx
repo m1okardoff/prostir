@@ -65,7 +65,11 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
     const nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
     const nextSpeed = speeds[nextIndex];
     setPlaybackSpeed(nextSpeed);
-    player.playbackRate = nextSpeed;
+    if (typeof (player as any).setPlaybackRate === "function") {
+      player.setPlaybackRate(nextSpeed);
+    } else {
+      player.playbackRate = nextSpeed;
+    }
   };
 
   // Розрахунок відсотка завершеності для прогрес-бару (0..1)
