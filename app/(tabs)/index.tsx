@@ -6,7 +6,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { Ionicons } from "@expo/vector-icons";
 import { usePaginatedQuery } from "convex/react";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -15,12 +15,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
 const PAGE_SIZE = 5;
 
 export default function FeedScreen() {
   const { signOut } = useAuthActions();
   const [refreshing, setRefreshing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+
+  const scrollToTop = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   const { results, status, loadMore, isLoading } = usePaginatedQuery(
     api.posts.getPaginatedPosts,
@@ -75,6 +82,7 @@ export default function FeedScreen() {
       </View>
       {/* Стрічка постів */}
       <FlatList
+        ref={flatListRef}
         data={results}
         renderItem={({ item }) => <Post post={item} />}
         keyExtractor={(item) => item._id}
@@ -83,6 +91,15 @@ export default function FeedScreen() {
         ListHeaderComponent={<StoriesSection />}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
+        onScroll={(event) => {
+          const offsetY = event.nativeEvent.contentOffset.y;
+          if (offsetY > 400 && !showScrollTop) {
+            setShowScrollTop(true);
+          } else if (offsetY <= 400 && showScrollTop) {
+            setShowScrollTop(false);
+          }
+        }}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -98,7 +115,7 @@ export default function FeedScreen() {
           ) : status === "Exhausted" && results.length > 0 ? (
             <View className="py-6 items-center">
               <Text className="text-grey text-xs">
-                Ви переглянули всі публікації &#x1f389;
+                Ви переглянули всі публікації 🎉
               </Text>
             </View>
           ) : null
@@ -119,6 +136,26 @@ export default function FeedScreen() {
           ) : null
         }
       />
+
+      {/* Плаваюча кнопка повернення до останнього (найновішого) посту */}
+      {showScrollTop && (
+        <Animated.View
+          entering={FadeInDown.duration(200)}
+          exiting={FadeOutDown.duration(200)}
+          className="absolute bottom-20 right-4 z-30"
+        >
+          <TouchableOpacity
+            onPress={scrollToTop}
+            activeOpacity={0.8}
+            className="flex-row items-center gap-1.5 bg-surface/95 border border-surfaceLight px-3.5 py-2.5 rounded-full shadow-lg shadow-black/70"
+          >
+            <Ionicons name="arrow-up" size={16} color={COLORS.primary} />
+            <Text className="text-white text-xs font-semibold">
+              До останнього
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 }

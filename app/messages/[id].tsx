@@ -15,7 +15,7 @@ import { File } from "expo-file-system";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { fetch } from "expo/fetch";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,12 +26,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
 export default function ChatRoomScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = id as Id<"conversations">;
 
   const [isSending, setIsSending] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const flatListRef = useRef<FlatList>(null);
+
+  const scrollToBottom = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  };
 
   const conversation = useQuery(api.conversations.getConversation, {
     conversationId,
@@ -271,86 +278,122 @@ export default function ChatRoomScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 50}
       >
-        <FlatList
-          data={messages}
-          inverted
-          keyExtractor={(item) => item._id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-          }}
-          onEndReached={() => {
-            if (status === "CanLoadMore") {
-              loadMore(20);
-            }
-          }}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            status === "LoadingMore" ? (
-              <View className="py-4 items-center justify-center">
-                <ActivityIndicator size="small" color={COLORS.primary} />
-              </View>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <SwipeableMessageItem
-              isSystem={item.isSystem}
-              isMine={item.isMine}
-              onReply={() => {
-                setReplyingTo({
-                  messageId: item._id,
-                  senderName: item.senderName,
-                  text:
-                    item.content ||
-                    (item.imageUrl
-                      ? "&#x1f4f7; Фотографія"
-                      : "&#x1f3a4; Голосове"),
-                });
-              }}
-              onDoubleTap={() => handleToggleReaction(item._id, "❤️")}
-              onLongPress={(position) =>
-                setPickerState({ messageId: item._id, position })
+        <View className="flex-1 relative">
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            inverted
+            keyExtractor={(item) => item._id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+            }}
+            onScroll={(event) => {
+              const offsetY = event.nativeEvent.contentOffset.y;
+              if (offsetY > 300 && !showScrollBottom) {
+                setShowScrollBottom(true);
+              } else if (offsetY <= 300 && showScrollBottom) {
+                setShowScrollBottom(false);
               }
-            >
-              <MessageBubble
-                content={item.content}
-                imageUrl={item.imageUrl}
-                createdAt={item.createdAt}
-                isMine={item.isMine}
-                senderName={item.senderName}
-                isGroup={conversation.isGroup}
-                senderAvatar={item.senderAvatar}
-                senderId={item.senderId}
-                audioUrl={item.audioUrl}
-                audioDuration={item.audioDuration}
-                replyToSender={item.replyToSender}
-                replyToText={item.replyToText}
-                reactions={item.reactions}
-                onToggleReaction={(emoji) =>
-                  handleToggleReaction(item._id, emoji)
-                }
+            }}
+            scrollEventThrottle={16}
+            onEndReached={() => {
+              if (status === "CanLoadMore") {
+                loadMore(20);
+              }
+            }}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              status === "LoadingMore" ? (
+                <View className="py-4 items-center justify-center">
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                </View>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <SwipeableMessageItem
                 isSystem={item.isSystem}
-              />
-            </SwipeableMessageItem>
-          )}
-          ListEmptyComponent={
-            isLoading ? null : (
-              <View className="items-center justify-center py-16 scale-y-[-1]">
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={44}
-                  color={COLORS.grey}
-                  style={{ marginBottom: 8 }}
+                isMine={item.isMine}
+                onReply={() => {
+                  if (item.isSystem) return;
+                  setReplyingTo({
+                    messageId: item._id,
+                    senderName: item.senderName,
+                    text:
+                      item.content ||
+                      (item.imageUrl
+                        ? "📷 Фотографія"
+                        : "🎤 Голосове"),
+                  });
+                }}
+                onDoubleTap={() => {
+                  if (!item.isSystem) {
+                    handleToggleReaction(item._id, "❤️");
+                  }
+                }}
+                onLongPress={(position) => {
+                  if (!item.isSystem) {
+                    setPickerState({ messageId: item._id, position });
+                  }
+                }}
+              >
+                <MessageBubble
+                  content={item.content}
+                  imageUrl={item.imageUrl}
+                  createdAt={item.createdAt}
+                  isMine={item.isMine}
+                  senderName={item.senderName}
+                  isGroup={conversation.isGroup}
+                  senderAvatar={item.senderAvatar}
+                  senderId={item.senderId}
+                  audioUrl={item.audioUrl}
+                  audioDuration={item.audioDuration}
+                  replyToSender={item.replyToSender}
+                  replyToText={item.replyToText}
+                  reactions={item.reactions}
+                  onToggleReaction={(emoji) =>
+                    handleToggleReaction(item._id, emoji)
+                  }
+                  isSystem={item.isSystem}
                 />
+              </SwipeableMessageItem>
+            )}
+            ListEmptyComponent={
+              isLoading ? null : (
+                <View className="items-center justify-center py-16 scale-y-[-1]">
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={44}
+                    color={COLORS.grey}
+                    style={{ marginBottom: 8 }}
+                  />
 
-                <Text className="text-grey text-sm text-center">
-                  Повідомлень ще немає. Напишіть першим!
-                </Text>
-              </View>
-            )
-          }
-        />
+                  <Text className="text-grey text-sm text-center">
+                    Повідомлень ще немає. Напишіть першим!
+                  </Text>
+                </View>
+              )
+            }
+          />
+
+          {/* Плаваюча кнопка повернення до останнього повідомлення */}
+          {showScrollBottom && (
+            <Animated.View
+              entering={FadeInDown.duration(200)}
+              exiting={FadeOutDown.duration(200)}
+              className="absolute bottom-3 right-4 z-20"
+            >
+              <TouchableOpacity
+                onPress={scrollToBottom}
+                activeOpacity={0.8}
+                className="w-10 h-10 rounded-full bg-surface/95 border border-surfaceLight items-center justify-center shadow-lg shadow-black/60"
+              >
+                <Ionicons name="chevron-down" size={22} color={COLORS.primary} />
+              </TouchableOpacity>
+            </Animated.View>
+          )}
+        </View>
 
         <ChatInput
           onSendMessage={handleSendMessage}
