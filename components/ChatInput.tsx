@@ -30,6 +30,7 @@ interface ChatInputProps {
   onSendAudio?: (audioUri: string, durationSeconds: number) => Promise<void>;
   isSending: boolean;
   replyingTo?: ReplyingToData | null;
+  onOpenVideoRecorder?: () => void;
   onCancelReply?: () => void;
 }
 
@@ -38,6 +39,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   onSendAudio,
   isSending,
   replyingTo,
+  onOpenVideoRecorder,
   onCancelReply,
 }) => {
   const [text, setText] = useState("");
@@ -224,13 +226,35 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 )}
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity
-                onPress={startRecording}
-                className="p-1 ml-3"
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="mic-outline" size={24} color={COLORS.primary} />
-              </TouchableOpacity>
+              <View className="flex-row items-center gap-2 ml-2">
+                {/* Кнопка запису відеокружечка &#x1f4f9; */}
+                {onOpenVideoRecorder && (
+                  <TouchableOpacity
+                    onPress={onOpenVideoRecorder}
+                    className="p-1"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name="videocam-outline"
+                      size={24}
+                      color={COLORS.primary}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Кнопка запису голосового &#x1f3a4; */}
+                <TouchableOpacity
+                  onPress={startRecording}
+                  className="p-1"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name="mic-outline"
+                    size={24}
+                    color={COLORS.primary}
+                  />
+                </TouchableOpacity>
+              </View>
             )}
           </>
         )}

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { memo, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { MessageReactions, ReactionItem } from "./MessageReactions";
+import { VideoNotePlayer } from "./VideoNotePlayer";
 import { VoiceMessagePlayer } from "./VoiceMessagePlayer";
 
 interface MessageBubbleProps {
@@ -14,13 +15,16 @@ interface MessageBubbleProps {
   isGroup: boolean;
   senderAvatar?: string;
   senderId: string;
-  audioUrl?: string; // 👈 Нове поле
-  audioDuration?: number; // 👈 Нове поле
+  audioUrl?: string;
+  audioDuration?: number;
   replyToSender?: string;
   replyToText?: string;
   reactions?: ReactionItem[];
   onToggleReaction: (emoji: string) => void;
-  isSystem?: boolean; // &#x1f448; Додаємо для підтримки системних повідомлень
+  isSystem?: boolean;
+  videoUrl?: string; // 👈 Старе поле
+  videoDuration?: number; // 👈 Старе поле
+  isVideoNote?: boolean; // 👈 Старе поле
 }
 
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
@@ -39,6 +43,9 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   reactions,
   onToggleReaction,
   isSystem = false,
+  videoUrl,
+  videoDuration,
+  isVideoNote,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -104,6 +111,16 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
             </Text>
           </View>
         )}
+
+        {isVideoNote && videoUrl ? (
+          <View className="items-center justify-center">
+            <VideoNotePlayer
+              videoUrl={videoUrl}
+              duration={videoDuration}
+              size={220}
+            />
+          </View>
+        ) : null}
 
         {/* Прикріплене зображення */}
         {imageUrl ? (

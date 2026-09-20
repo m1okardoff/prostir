@@ -6,6 +6,7 @@ import {
   ReactionPickerPosition,
 } from "@/components/ReactionPickerModal";
 import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
+import { VideoNoteRecorderModal } from "@/components/VideoNoteRecorderModal";
 import { COLORS } from "@/constants/theme";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -35,6 +36,7 @@ export default function ChatRoomScreen() {
   const [isSending, setIsSending] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const [isVideoRecorderVisible, setIsVideoRecorderVisible] = useState(false);
 
   const scrollToBottom = () => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -81,6 +83,52 @@ export default function ChatRoomScreen() {
       await toggleReactionMutation({ messageId, emoji });
     } catch (error) {
       console.error("Помилка зміни реакції:", error);
+    }
+  };
+
+  // Обробник надсилання відеокружечка
+  const handleSendVideoNote = async (
+    videoUri: string,
+    durationSeconds: number,
+  ) => {
+    try {
+      setIsSending(true);
+
+      // 1. Отримуємо одноразовий URL для завантаження в Convex Storage
+      const uploadUrl = await generateUploadUrlMutation();
+
+      // 2. Створюємо екземпляр файлу
+      const file = new File(videoUri);
+
+      // 3. Завантажуємо .mp4 файл
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": "video/mp4" },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Не вдалося завантажити відеокружечок");
+      }
+
+      const { storageId } = await uploadResult.json();
+
+      // 4. Зберігаємо повідомлення в базі
+      await sendMessageMutation({
+        conversationId,
+        content: "",
+        videoStorageId: storageId,
+        videoDuration: durationSeconds,
+        isVideoNote: true,
+      });
+    } catch (error: any) {
+      console.error("Помилка надсилання кружечка:", error);
+      Alert.alert(
+        "Помилка",
+        error?.message || "Не вдалося надіслати відеокружечок",
+      );
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -322,9 +370,7 @@ export default function ChatRoomScreen() {
                     senderName: item.senderName,
                     text:
                       item.content ||
-                      (item.imageUrl
-                        ? "📷 Фотографія"
-                        : "🎤 Голосове"),
+                      (item.imageUrl ? "📷 Фотографія" : "🎤 Голосове"),
                   });
                 }}
                 onDoubleTap={() => {
@@ -389,7 +435,11 @@ export default function ChatRoomScreen() {
                 activeOpacity={0.8}
                 className="w-10 h-10 rounded-full bg-surface/95 border border-surfaceLight items-center justify-center shadow-lg shadow-black/60"
               >
-                <Ionicons name="chevron-down" size={22} color={COLORS.primary} />
+                <Ionicons
+                  name="chevron-down"
+                  size={22}
+                  color={COLORS.primary}
+                />
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -398,6 +448,7 @@ export default function ChatRoomScreen() {
         <ChatInput
           onSendMessage={handleSendMessage}
           onSendAudio={handleSendAudio}
+          onOpenVideoRecorder={() => setIsVideoRecorderVisible(true)}
           isSending={isSending}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
@@ -428,6 +479,11 @@ export default function ChatRoomScreen() {
           onConversationDeleted={() => router.replace("/messages")}
         />
       )}
+      <VideoNoteRecorderModal
+        visible={isVideoRecorderVisible}
+        onClose={() => setIsVideoRecorderVisible(false)}
+        onFinishRecording={handleSendVideoNote}
+      />
     </View>
   );
 }
