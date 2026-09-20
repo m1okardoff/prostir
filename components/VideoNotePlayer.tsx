@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, Text, Platform } from "react-native";
-import { useVideoPlayer, VideoView } from "expo-video";
-import Svg, { Circle } from "react-native-svg";
-import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
+import { useVideoPlayer, VideoView } from "expo-video";
+import React, { useEffect, useState } from "react";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 
 interface VideoNotePlayerProps {
   videoUrl: string;
@@ -22,10 +22,9 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
 
   // Створюємо та налаштовуємо плеєр
   const player = useVideoPlayer(videoUrl, (p) => {
-    p.loop = true;
+    p.loop = false;
     p.muted = false;
     p.timeUpdateEventInterval = 0.1;
-    p.play();
   });
 
   useEffect(() => {
