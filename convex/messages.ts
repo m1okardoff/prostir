@@ -174,6 +174,11 @@ export const sendMessage = mutation({
     audioStorageId: v.optional(v.id("_storage")),
     audioDuration: v.optional(v.number()),
 
+    // &#x1f448; Нові аргументи:
+    videoStorageId: v.optional(v.id("_storage")),
+    videoDuration: v.optional(v.number()),
+    isVideoNote: v.optional(v.boolean()),
+
     // &#x1f448; Нові аргументи для цитування:
     replyToId: v.optional(v.id("messages")),
     replyToSender: v.optional(v.string()),
@@ -211,6 +216,13 @@ export const sendMessage = mutation({
       if (url) audioUrl = url;
     }
 
+    // &#x1f448; Отримуємо публічний URL відеокружечка
+    let videoUrl: string | undefined = undefined;
+    if (args.videoStorageId) {
+      const url = await ctx.storage.getUrl(args.videoStorageId);
+      if (url) videoUrl = url;
+    }
+
     const now = Date.now();
 
     // Зберігаємо повідомлення в таблицю messages разом з полями відповіді
@@ -223,6 +235,10 @@ export const sendMessage = mutation({
       audioUrl,
       audioStorageId: args.audioStorageId,
       audioDuration: args.audioDuration,
+      videoUrl,
+      videoStorageId: args.videoStorageId,
+      videoDuration: args.videoDuration,
+      isVideoNote: args.isVideoNote,
       createdAt: now,
       replyToId: args.replyToId,
       replyToSender: args.replyToSender,
@@ -233,6 +249,11 @@ export const sendMessage = mutation({
     let previewText = trimmedContent;
     if (!previewText) {
       if (args.audioStorageId) {
+        const dur = args.audioDuration
+          ? ` (${Math.round(args.audioDuration)}с)`
+          : "";
+        previewText = `&#x1f4f9; Відеоповідомлення${dur}`;
+      } else if (args.audioStorageId) {
         const dur = args.audioDuration
           ? ` (${Math.round(args.audioDuration)}с)`
           : "";

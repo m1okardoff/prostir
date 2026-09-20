@@ -98,6 +98,11 @@ export default defineSchema({
     replyToSender: v.optional(v.string()),
     replyToText: v.optional(v.string()),
     isSystem: v.optional(v.boolean()), // &#x1f448; НОВЕ ПОЛЕ: true для системних сповіщень (додавання, вилучення, ролі)
+
+    videoUrl: v.optional(v.string()),
+    videoStorageId: v.optional(v.id("_storage")),
+    videoDuration: v.optional(v.number()), // тривалість у секундах
+    isVideoNote: v.optional(v.boolean()), // true = круглий формат (Telegram style)
   })
     .index("by_conversation", ["conversationId"])
     .index("by_created_at", ["createdAt"]),

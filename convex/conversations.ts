@@ -506,6 +506,23 @@ export const deleteConversation = mutation({
         await ctx.db.delete(reaction._id);
       }
 
+      // Очищення файлів у Convex Storage:
+      if (msg.storageId) {
+        try {
+          await ctx.storage.delete(msg.storageId);
+        } catch {}
+      }
+      if (msg.audioStorageId) {
+        try {
+          await ctx.storage.delete(msg.audioStorageId);
+        } catch {}
+      }
+      if (msg.videoStorageId) {
+        try {
+          await ctx.storage.delete(msg.videoStorageId);
+        } catch {}
+      }
+
       // Видаляємо саме повідомлення
       await ctx.db.delete(msg._id);
     }

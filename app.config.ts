@@ -6,18 +6,20 @@ const PACKAGE_NAME = "com.prostir.app";
 const SCHEME = "prostir";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  // Визначаємо поточне середовище (за замовчуванням development)
+  // Визначаємо поточне середовище
+  // (за замовчуванням development)
   const environment =
     (process.env.APP_ENV as "development" | "preview" | "production") ||
     "development";
 
-  console.log("⚙️  Поточне середовище збірки:", environment);
+  console.log("⚙️ Поточне середовище збірки:", environment);
   console.log("📦 URL бази даних Convex:", process.env.EXPO_PUBLIC_CONVEX_URL);
 
   const isDev = environment === "development";
 
   return {
     ...config,
+
     name: isDev ? `${APP_NAME} Dev` : APP_NAME,
     slug: "prostir",
     version: "1.0.0",
@@ -29,22 +31,29 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ios: {
       supportsTablet: true,
       bundleIdentifier: isDev ? `${PACKAGE_NAME}.dev` : PACKAGE_NAME,
+
       infoPlist: {
+        NSCameraUsageDescription:
+          "Додатку Prostir потрібен доступ до камери для запису відеокружечків.",
+
         NSMicrophoneUsageDescription:
-          "Додатку потрібен доступ до мікрофона для запису та надсилання голосових повідомлень.",
+          "Додатку Prostir потрібен доступ до мікрофона для запису звуку у відеоповідомленнях та голосових повідомленнях.",
       },
     },
 
     android: {
       package: isDev ? `${PACKAGE_NAME}.dev` : PACKAGE_NAME,
+
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
       },
-      // Дозволи для фото та збереження файлів
+
       permissions: [
-        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+
+        // Дозволи для роботи з фото
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
@@ -58,8 +67,30 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     plugins: [
-      "expo-audio",
       "expo-router",
+      [
+        "expo-audio",
+        {
+          microphonePermission:
+            "Додатку Prostir потрібен доступ до мікрофона для запису голосових повідомлень.",
+        },
+      ],
+
+      [
+        "expo-camera",
+        {
+          cameraPermission:
+            "Додатку Prostir потрібен доступ до камери для запису відеокружечків.",
+
+          microphonePermission:
+            "Додатку Prostir потрібен доступ до мікрофона для запису звуку у відеокружечках.",
+
+          recordAudioAndroid: true,
+        },
+      ],
+
+      "expo-video",
+
       [
         "expo-splash-screen",
         {
@@ -69,12 +100,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           backgroundColor: "#000000",
         },
       ],
+
       [
         "expo-image-picker",
         {
           photosPermission: "Додатку потрібен доступ до ваших фотографій.",
         },
       ],
+
       "expo-secure-store",
     ],
 
