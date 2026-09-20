@@ -5,7 +5,8 @@ import {
   useAudioPlayer,
   useAudioPlayerStatus,
 } from "expo-audio";
-import React, { useEffect } from "react";
+import * as Haptics from "expo-haptics";
+import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 interface VoiceMessagePlayerProps {
@@ -21,6 +22,8 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
 }) => {
   const player = useAudioPlayer(audioUrl || null);
   const status = useAudioPlayerStatus(player);
+
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
 
   const isPlaying = status?.playing ?? false;
   const currentTime = status?.currentTime ?? 0;
@@ -55,6 +58,14 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
     } catch (error) {
       console.error("Помилка відтворення аудіо:", error);
     }
+  };
+  const handleToggleSpeed = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const speeds: (1 | 1.5 | 2)[] = [1, 1.5, 2];
+    const nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+    const nextSpeed = speeds[nextIndex];
+    setPlaybackSpeed(nextSpeed);
+    player.playbackRate = nextSpeed;
   };
 
   // Розрахунок відсотка завершеності для прогрес-бару (0..1)
@@ -124,6 +135,33 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
             color={isMine ? "rgba(255,255,255,0.7)" : COLORS.grey}
           />
         </View>
+        <TouchableOpacity
+          onPress={handleToggleSpeed}
+          activeOpacity={0.7}
+          className={`px-1.5 py-0.5 rounded-md ml-2 border ${
+            playbackSpeed > 1
+              ? isMine
+                ? "bg-white/25 border-white/40"
+                : "bg-primary/20 border-primary/50"
+              : isMine
+                ? "bg-black/15 border-white/10"
+                : "bg-surfaceLight border-surfaceLight"
+          }`}
+        >
+          <Text
+            className={`text-[10px] font-bold ${
+              playbackSpeed > 1
+                ? isMine
+                  ? "text-white"
+                  : "text-primary"
+                : isMine
+                  ? "text-white/70"
+                  : "text-grey"
+            }`}
+          >
+            {playbackSpeed}x
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );

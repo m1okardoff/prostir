@@ -1,5 +1,6 @@
 import { COLORS } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useVideoPlayer, VideoView } from "expo-video";
 import React, { useEffect, useState } from "react";
 import { Platform, Text, TouchableOpacity, View } from "react-native";
@@ -19,6 +20,8 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
+
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
 
   // Створюємо та налаштовуємо плеєр
   const player = useVideoPlayer(videoUrl, (p) => {
@@ -58,6 +61,15 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
   const handleToggleMute = () => {
     player.muted = !player.muted;
     setIsMuted(player.muted);
+  };
+
+  const handleToggleSpeed = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const speeds: (1 | 1.5 | 2)[] = [1, 1.5, 2];
+    const nextIndex = (speeds.indexOf(playbackSpeed) + 1) % speeds.length;
+    const nextSpeed = speeds[nextIndex];
+    setPlaybackSpeed(nextSpeed);
+    player.playbackRate = nextSpeed;
   };
 
   // Розрахунок геометрії кола
@@ -157,6 +169,22 @@ export const VideoNotePlayer: React.FC<VideoNotePlayerProps> = ({
               {Math.round(duration)}с
             </Text>
           )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={(e) => {
+            e.stopPropagation();
+            handleToggleSpeed();
+          }}
+          activeOpacity={0.8}
+          className={`absolute top-2.5 right-3 px-2 py-0.5 rounded-full border ${
+            playbackSpeed > 1
+              ? "bg-primary border-primary"
+              : "bg-black/70 border-white/20"
+          }`}
+        >
+          <Text className="text-white text-[10px] font-bold">
+            {playbackSpeed}x
+          </Text>
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
