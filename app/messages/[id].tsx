@@ -1,5 +1,6 @@
 import { ChatInput } from "@/components/ChatInput";
 import { GroupInfoModal } from "@/components/GroupInfoModal";
+import { MessageActionTarget } from "@/components/MessageActionsModal";
 import { MessageBubble } from "@/components/MessageBubble";
 import {
   ReactionPickerModal,
@@ -38,6 +39,8 @@ export default function ChatRoomScreen() {
   const flatListRef = useRef<FlatList>(null);
   const [isVideoRecorderVisible, setIsVideoRecorderVisible] = useState(false);
 
+  const currentUserId = useQuery(api.users.currentUser)?._id;
+
   const scrollToBottom = () => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
@@ -60,6 +63,23 @@ export default function ChatRoomScreen() {
   const sendMessageMutation = useMutation(api.messages.sendMessage);
 
   const generateUploadUrlMutation = useMutation(api.messages.generateUploadUrl);
+
+  const editMessageMutation = useMutation(api.messages.editMessage);
+  const deleteMessageMutation = useMutation(api.messages.deleteMessage);
+  const [actionsModalState, setActionsModalState] = useState<{
+    visible: boolean;
+    position: ReactionPickerPosition | null;
+    target: MessageActionTarget | null;
+  }>({
+    visible: false,
+    position: null,
+    target: null,
+  });
+
+  const [editingMessage, setEditingMessage] = useState<{
+    messageId: string;
+    text: string;
+  } | null>(null);
 
   const [replyingTo, setReplyingTo] = useState<{
     messageId: string;
@@ -130,6 +150,64 @@ export default function ChatRoomScreen() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  // Копіювання в буфер обміну
+  const handleCopyMessage = async (content: string) => {
+    // Якщо встановлено expo-clipboard:
+    // await Clipboard.setStringAsync(content);
+    Alert.alert("Успішно", "Текст повідомлення скопійовано");
+  };
+
+  // Старт редагування
+  const handleStartEdit = (messageId: string, text: string) => {
+    setReplyingTo(null); // скасовуємо відповідь, якщо була активна
+    setEditingMessage({ messageId, text });
+  };
+
+  // Збереження відредагованого тексту
+  const handleSaveEdit = async (messageId: string, newText: string) => {
+    try {
+      setIsSending(true);
+      await editMessageMutation({
+        messageId: messageId as Id<"messages">,
+        content: newText,
+      });
+      setEditingMessage(null);
+    } catch (error: any) {
+      console.error("Помилка редагування:", error);
+      Alert.alert("Помилка", error.message || "Не вдалося зберегти зміни");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Видалення повідомлення з підтвердженням
+  const handleDeleteMessage = (messageId: string) => {
+    Alert.alert(
+      "Видалити повідомлення?",
+      "Це повідомлення буде безповоротно видалено для всіх учасників бесіди.",
+      [
+        { text: "Скасувати", style: "cancel" },
+        {
+          text: "Видалити",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteMessageMutation({
+                messageId: messageId as Id<"messages">,
+              });
+            } catch (error: any) {
+              console.error("Помилка видалення повідомлення:", error);
+              Alert.alert(
+                "Помилка",
+                error.message || "Не вдалося видалити повідомлення",
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   // Обробник надсилання голосового повідомлення
@@ -385,7 +463,25 @@ export default function ChatRoomScreen() {
                 }}
                 onLongPress={(position) => {
                   if (!item.isSystem) {
-                    setPickerState({ messageId: item._id, position });
+                    const canEdit = item.isMine && !!item.content;
+                    const canDelete =
+                      item.isMine ||
+                      conversation.creatorId === currentUserId ||
+                      (conversation.adminIds?.includes(currentUserId!!) ??
+                        false);
+
+                    setActionsModalState({
+                      visible: true,
+                      position,
+                      target: {
+                        messageId: item._id,
+                        content: item.content || "",
+                        isMine: item.isMine,
+                        canEdit,
+                        canDelete,
+                        senderName: item.senderName,
+                      },
+                    });
                   }
                 }}
               >

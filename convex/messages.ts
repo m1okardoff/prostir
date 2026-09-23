@@ -171,7 +171,9 @@ export const getPaginatedMessages = query({
           senderImage: sender?.image,
           isMine: msg.senderId === currentUserId,
           senderAvatar: sender?.image,
-          reactions: formattedReactions, // 👈 Агреговані реакції
+          reactions: formattedReactions,
+          isEdited: msg.isEdited ?? false, // 👈 РЕАЛЬНО НОВЕ ПОЛЕ
+          updatedAt: msg.updatedAt, // 👈 РЕАЛЬНО НОВiШЕ НОВОГО ПОЛЯ
         };
       }),
     );
@@ -340,5 +342,161 @@ export const toggleReaction = mutation({
       });
       return { action: "added", emoji: args.emoji };
     }
+  },
+});
+
+/**
+ * Редагує текст існуючого повідомлення
+ */
+export const editMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+    content: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      throw new Error("Unauthorized: Необхідно авторизуватися");
+    }
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new Error("Повідомлення не знайдено");
+    }
+
+    // Лише автор повідомлення може його редагувати
+    if (message.senderId !== currentUserId) {
+      throw new Error("Ви можете редагувати лише власні повідомлення");
+    }
+
+    // Системні повідомлення редагувати не можна
+    if (message.isSystem) {
+      throw new Error("Системні повідомлення не можна редагувати");
+    }
+
+    const trimmedContent = args.content.trim();
+    if (!trimmedContent) {
+      throw new Error("Повідомлення не може бути порожнім");
+    }
+
+    const now = Date.now();
+
+    // Оновлюємо вміст повідомлення
+    await ctx.db.patch(args.messageId, {
+      content: trimmedContent,
+      isEdited: true,
+      updatedAt: now,
+    });
+
+    // Якщо це повідомлення було найостаннішим у бесіді, оновлюємо прев'ю
+    const latestMessage = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", message.conversationId),
+      )
+      .order("desc")
+      .first();
+
+    if (latestMessage?._id === args.messageId) {
+      await ctx.db.patch(message.conversationId, {
+        lastMessage: trimmedContent,
+      });
+    }
+
+    return { success: true };
+  },
+});
+
+/**
+ * Видаляє окреме повідомлення з чату з очищенням медіафайлів та оновленням останнього повідомлення
+ */
+export const deleteMessage = mutation({
+  args: {
+    messageId: v.id("messages"),
+  },
+  handler: async (ctx, args) => {
+    const currentUserId = await getAuthUserId(ctx);
+    if (!currentUserId) {
+      throw new Error("Unauthorized: Необхідно авторизуватися");
+    }
+
+    const message = await ctx.db.get(args.messageId);
+    if (!message) {
+      throw new Error("Повідомлення не знайдено");
+    }
+
+    const conversation = await ctx.db.get(message.conversationId);
+    if (!conversation) {
+      throw new Error("Бесіду не знайдено");
+    }
+
+    // Перевірка прав: видаляти може або автор повідомлення,
+    // або творець / адміністратор групового чату
+    const isAuthor = message.senderId === currentUserId;
+    const isCreator = conversation.creatorId === currentUserId;
+    const isAdmin = conversation.adminIds?.includes(currentUserId) ?? false;
+
+    if (!isAuthor && !isCreator && !isAdmin) {
+      throw new Error("У вас немає прав для видалення цього повідомлення");
+    }
+
+    // 1. Очищення пов'язаних файлів зі сховища Convex Storage
+    if (message.storageId) {
+      await ctx.storage.delete(message.storageId).catch(() => {});
+    }
+    if (message.audioStorageId) {
+      await ctx.storage.delete(message.audioStorageId).catch(() => {});
+    }
+    if (message.videoStorageId) {
+      await ctx.storage.delete(message.videoStorageId).catch(() => {});
+    }
+
+    // 2. Видалення реакцій, прив'язаних до цього повідомлення
+    const reactions = await ctx.db
+      .query("messageReactions")
+      .withIndex("by_message", (q) => q.eq("messageId", args.messageId))
+      .collect();
+
+    for (const reaction of reactions) {
+      await ctx.db.delete(reaction._id);
+    }
+
+    // 3. Видалення самого повідомлення
+    await ctx.db.delete(args.messageId);
+
+    // 4. Оновлюємо останнє повідомлення у бесіді, якщо видалене повідомлення було найостаннішим
+    const remainingLatest = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", message.conversationId),
+      )
+      .order("desc")
+      .first();
+
+    if (remainingLatest) {
+      let previewText = remainingLatest.content;
+      if (!previewText) {
+        if (remainingLatest.audioUrl || remainingLatest.audioStorageId) {
+          previewText = "&#x1f3a4; Голосове повідомлення";
+        } else if (remainingLatest.videoUrl || remainingLatest.videoStorageId) {
+          previewText = "&#x1f4f9; Відеоповідомлення";
+        } else if (remainingLatest.imageUrl || remainingLatest.storageId) {
+          previewText = "&#x1f4f7; Фотографія";
+        }
+      }
+
+      await ctx.db.patch(message.conversationId, {
+        lastMessage: previewText,
+        lastMessageAt: remainingLatest.createdAt,
+      });
+    } else {
+      // Якщо в чаті більше немає повідомлень
+      await ctx.db.patch(message.conversationId, {
+        lastMessage: undefined,
+        lastMessageAt: undefined,
+      });
+    }
+
+    return { success: true };
   },
 });

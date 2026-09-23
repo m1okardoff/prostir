@@ -94,7 +94,7 @@ export default defineSchema({
     audioStorageId: v.optional(v.id("_storage")),
     audioDuration: v.optional(v.number()),
 
-    // &#x1f448; НОВЕ ПОЛЕ: масив амплітуд для звукової хвилі (0.1 .. 1.0)
+    // &#x1f448; СТАРЕ ПОЛЕ: масив амплітуд для звукової хвилі (0.1 .. 1.0)
     waveform: v.optional(v.array(v.number())),
 
     videoUrl: v.optional(v.string()),
@@ -107,6 +107,9 @@ export default defineSchema({
     replyToSender: v.optional(v.string()),
     replyToText: v.optional(v.string()),
     isSystem: v.optional(v.boolean()),
+    // РЕАЛЬНО НОВЕ ПОЛЕ
+    isEdited: v.optional(v.boolean()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_created_at", ["createdAt"]),

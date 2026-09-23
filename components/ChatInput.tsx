@@ -36,6 +36,10 @@ interface ChatInputProps {
   replyingTo?: ReplyingToData | null;
   onOpenVideoRecorder?: () => void;
   onCancelReply?: () => void;
+  // chad input new fields ⬇️
+  editingMessage?: { messageId: string; text: string } | null;
+  onCancelEdit?: () => void;
+  onSaveEdit?: (messageId: string, newText: string) => Promise<void>;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
@@ -45,6 +49,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   replyingTo,
   onOpenVideoRecorder,
   onCancelReply,
+  editingMessage,
+  onCancelEdit,
+  onSaveEdit,
 }) => {
   const [text, setText] = useState("");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -59,6 +66,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (editingMessage) {
+      setText(editingMessage.text);
+    }
+  }, [editingMessage]);
 
   const startRecording = async () => {
     try {
@@ -141,7 +154,24 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     }
   };
 
-  const handleSend = async () => {
+  // const handleSend = async () => {
+  //   if ((!text.trim() && !selectedImage) || isSending) return;
+  //   const currentText = text;
+  //   const currentImage = selectedImage;
+  //   setText("");
+  //   setSelectedImage(null);
+  //   await onSendMessage(currentText, currentImage || undefined);
+  // };
+
+  const handleSendOrSave = async () => {
+    if (editingMessage && onSaveEdit) {
+      if (!text.trim() || isSending) return;
+      const newText = text.trim();
+      await onSaveEdit(editingMessage.messageId, newText);
+      setText("");
+      return;
+    }
+
     if ((!text.trim() && !selectedImage) || isSending) return;
     const currentText = text;
     const currentImage = selectedImage;
@@ -239,7 +269,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
             {text.trim() || selectedImage ? (
               <TouchableOpacity
-                onPress={handleSend}
+                onPress={handleSendOrSave}
                 disabled={isSending}
                 className="bg-primary p-2.5 rounded-full ml-3"
               >

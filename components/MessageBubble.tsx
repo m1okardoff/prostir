@@ -25,7 +25,8 @@ interface MessageBubbleProps {
   videoUrl?: string; // 👈 Старе поле
   videoDuration?: number; // 👈 Старе поле
   isVideoNote?: boolean; // 👈 Старе поле
-  waveform?: number[]; // 👈 new поле
+  waveform?: number[]; // 👈 already not new поле
+  isEdited?: boolean; // 👈 actually new field
 }
 
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
@@ -48,6 +49,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   videoDuration,
   isVideoNote,
   waveform,
+  isEdited,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -155,18 +157,23 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
           <Text className="text-white text-base leading-5">{content}</Text>
         ) : null}
 
-        {/* Час відправки */}
-        <Text
-          className={`text-[10px] mt-1 self-end ${
-            isVideoNote && !content
-              ? "text-grey/80"
-              : isMine
-                ? "text-white/70"
-                : "text-grey"
-          }`}
-        >
-          {timeString}
-        </Text>
+        {/* Час відправки та позначка редагування */}
+        <View className="flex-row items-center self-end mt-1 gap-1">
+          {isEdited && (
+            <Text
+              className={`text-[9px] italic ${
+                isMine ? "text-white/60" : "text-grey"
+              }`}
+            >
+              ред.
+            </Text>
+          )}
+          <Text
+            className={`text-[10px] ${isMine ? "text-white/70" : "text-grey"}`}
+          >
+            {timeString}
+          </Text>
+        </View>
 
         {/* ❤️ Реакції всередині бульбашки */}
         <MessageReactions
