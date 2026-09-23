@@ -125,7 +125,7 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
         </View>
 
         {/* Час та іконка мікрофона */}
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row justify-between items-center mt-1">
           <Text
             className={`text-[11px] font-medium ${
               isMine ? "text-white/80" : "text-grey"
@@ -133,39 +133,34 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
           >
             {displayTime}
           </Text>
-          <Ionicons
-            name="mic"
-            size={12}
-            color={isMine ? "rgba(255,255,255,0.7)" : COLORS.grey}
-          />
-        </View>
-        <TouchableOpacity
-          onPress={handleToggleSpeed}
-          activeOpacity={0.7}
-          className={`px-1.5 py-0.5 rounded-md ml-2 border ${
-            playbackSpeed > 1
-              ? isMine
-                ? "bg-white/25 border-white/40"
-                : "bg-primary/20 border-primary/50"
-              : isMine
-                ? "bg-black/15 border-white/10"
-                : "bg-surfaceLight border-surfaceLight"
-          }`}
-        >
-          <Text
-            className={`text-[10px] font-bold ${
+          <TouchableOpacity
+            onPress={handleToggleSpeed}
+            activeOpacity={0.7}
+            className={`px-1.5 py-0.5 rounded-md ml-2 border ${
               playbackSpeed > 1
                 ? isMine
-                  ? "text-white"
-                  : "text-primary"
+                  ? "bg-white/25 border-white/40"
+                  : "bg-primary/20 border-primary/50"
                 : isMine
-                  ? "text-white/70"
-                  : "text-grey"
+                  ? "bg-black/15 border-white/10"
+                  : "bg-surfaceLight border-surfaceLight"
             }`}
           >
-            {playbackSpeed}x
-          </Text>
-        </TouchableOpacity>
+            <Text
+              className={`text-[10px] font-bold ${
+                playbackSpeed > 1
+                  ? isMine
+                    ? "text-white"
+                    : "text-primary"
+                  : isMine
+                    ? "text-white/70"
+                    : "text-grey"
+              }`}
+            >
+              {playbackSpeed}x
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
