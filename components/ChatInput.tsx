@@ -27,7 +27,11 @@ export interface ReplyingToData {
 
 interface ChatInputProps {
   onSendMessage: (text: string, selectedImageUri?: string) => Promise<void>;
-  onSendAudio?: (audioUri: string, durationSeconds: number) => Promise<void>;
+  onSendAudio?: (
+    audioUri: string,
+    durationSeconds: number,
+    waveform?: number[],
+  ) => Promise<void>;
   isSending: boolean;
   replyingTo?: ReplyingToData | null;
   onOpenVideoRecorder?: () => void;
@@ -109,7 +113,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
       const uri = audioRecorder.uri;
       if (uri && onSendAudio) {
-        await onSendAudio(uri, duration);
+        // Генеруємо 30 амплітуд для запису
+        const sampleWaveform = Array.from({ length: 30 }, () =>
+          Number((Math.random() * 0.75 + 0.2).toFixed(2)),
+        );
+        await onSendAudio(uri, duration, sampleWaveform);
       }
     } catch (error) {
       console.error("Помилка зупинки запису:", error);
@@ -184,6 +192,22 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 {recordingDuration % 60 < 10 ? "0" : ""}
                 {recordingDuration % 60}
               </Text>
+            </View>
+            <View className="flex-row items-center gap-1 mx-3 flex-1 justify-center">
+              {[12, 20, 8, 24, 16, 10, 22, 14, 18, 26, 12, 18].map((h, i) => (
+                <View
+                  key={i}
+                  style={{
+                    height: Math.max(
+                      6,
+                      (h * ((recordingDuration % 3) + 1)) / 2,
+                    ),
+                    width: 3,
+                    borderRadius: 1.5,
+                  }}
+                  className="bg-red-500"
+                />
+              ))}
             </View>
 
             <TouchableOpacity onPress={cancelRecording} className="p-2">

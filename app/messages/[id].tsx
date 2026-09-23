@@ -133,7 +133,11 @@ export default function ChatRoomScreen() {
   };
 
   // Обробник надсилання голосового повідомлення
-  const handleSendAudio = async (audioUri: string, durationSeconds: number) => {
+  const handleSendAudio = async (
+    audioUri: string,
+    durationSeconds: number,
+    waveform?: number[],
+  ) => {
     try {
       setIsSending(true);
 
@@ -167,6 +171,7 @@ export default function ChatRoomScreen() {
         content: "",
         audioStorageId: storageId,
         audioDuration: durationSeconds,
+        waveform,
       });
     } catch (error: any) {
       console.error("Помилка надсилання аудіо:", error);
@@ -405,6 +410,7 @@ export default function ChatRoomScreen() {
                     handleToggleReaction(item._id, emoji)
                   }
                   isSystem={item.isSystem}
+                  waveform={item.waveform}
                 />
               </SwipeableMessageItem>
             )}

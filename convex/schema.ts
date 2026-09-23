@@ -85,24 +85,28 @@ export default defineSchema({
   }),
 
   messages: defineTable({
-    conversationId: v.id("conversations"), // ID бесіди
-    senderId: v.id("users"), // ID автора повідомлення
-    content: v.string(), // Текст повідомлення
-    imageUrl: v.optional(v.string()), // Публічний URL фото (якщо прикріплено)
-    storageId: v.optional(v.id("_storage")), // ID файлу в сховищі Convex
-    audioUrl: v.optional(v.string()), // Публічний URL аудіо (якщо прикріплено)
-    audioStorageId: v.optional(v.id("_storage")), // ID аудіофайлу в сховищі Convex
-    audioDuration: v.optional(v.number()), // тривалість у секундах
-    createdAt: v.number(), // Час створення (Date.now())
-    replyToId: v.optional(v.id("messages")),
-    replyToSender: v.optional(v.string()),
-    replyToText: v.optional(v.string()),
-    isSystem: v.optional(v.boolean()), // &#x1f448; НОВЕ ПОЛЕ: true для системних сповіщень (додавання, вилучення, ролі)
+    conversationId: v.id("conversations"),
+    senderId: v.id("users"),
+    content: v.string(),
+    imageUrl: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    audioUrl: v.optional(v.string()),
+    audioStorageId: v.optional(v.id("_storage")),
+    audioDuration: v.optional(v.number()),
+
+    // &#x1f448; НОВЕ ПОЛЕ: масив амплітуд для звукової хвилі (0.1 .. 1.0)
+    waveform: v.optional(v.array(v.number())),
 
     videoUrl: v.optional(v.string()),
     videoStorageId: v.optional(v.id("_storage")),
-    videoDuration: v.optional(v.number()), // тривалість у секундах
-    isVideoNote: v.optional(v.boolean()), // true = круглий формат (Telegram style)
+    videoDuration: v.optional(v.number()),
+    isVideoNote: v.optional(v.boolean()),
+
+    createdAt: v.number(),
+    replyToId: v.optional(v.id("messages")),
+    replyToSender: v.optional(v.string()),
+    replyToText: v.optional(v.string()),
+    isSystem: v.optional(v.boolean()),
   })
     .index("by_conversation", ["conversationId"])
     .index("by_created_at", ["createdAt"]),

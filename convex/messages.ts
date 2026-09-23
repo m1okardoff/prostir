@@ -142,7 +142,8 @@ export const getPaginatedMessages = query({
 
         let videoUrl = msg.videoUrl;
         if (!videoUrl && msg.videoStorageId) {
-          videoUrl = (await ctx.storage.getUrl(msg.videoStorageId)) ?? undefined;
+          videoUrl =
+            (await ctx.storage.getUrl(msg.videoStorageId)) ?? undefined;
         }
 
         let imageUrl = msg.imageUrl;
@@ -152,7 +153,8 @@ export const getPaginatedMessages = query({
 
         let audioUrl = msg.audioUrl;
         if (!audioUrl && msg.audioStorageId) {
-          audioUrl = (await ctx.storage.getUrl(msg.audioStorageId)) ?? undefined;
+          audioUrl =
+            (await ctx.storage.getUrl(msg.audioStorageId)) ?? undefined;
         }
 
         return {
@@ -196,6 +198,7 @@ export const sendMessage = mutation({
     videoStorageId: v.optional(v.id("_storage")),
     videoDuration: v.optional(v.number()),
     isVideoNote: v.optional(v.boolean()),
+    waveform: v.optional(v.array(v.number())),
 
     replyToId: v.optional(v.id("messages")),
     replyToSender: v.optional(v.string()),
@@ -264,6 +267,7 @@ export const sendMessage = mutation({
       replyToId: args.replyToId,
       replyToSender: args.replyToSender,
       replyToText: args.replyToText,
+      waveform: args.waveform,
     });
 
     // Формуємо текст останнього повідомлення для списку бесід

@@ -8,6 +8,7 @@ import {
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { AudioWaveform } from "./AudioWaveform";
 
 interface VoiceMessagePlayerProps {
   audioUrl: string;
@@ -15,10 +16,18 @@ interface VoiceMessagePlayerProps {
   isMine: boolean;
 }
 
+interface VoiceMessagePlayerProps {
+  audioUrl: string;
+  duration?: number;
+  waveform?: number[]; // &#x1f448; Новий проп
+  isMine: boolean;
+}
+
 export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
   audioUrl,
   duration = 0,
   isMine,
+  waveform,
 }) => {
   const player = useAudioPlayer(audioUrl || null);
   const status = useAudioPlayerStatus(player);
@@ -72,6 +81,17 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
     }
   };
 
+  const handleSeek = async (newProgress: number) => {
+    try {
+      if (totalDuration > 0) {
+        const targetTime = newProgress * totalDuration;
+        await player.seekTo(targetTime);
+      }
+    } catch (error) {
+      console.error("Помилка перемотування аудіо:", error);
+    }
+  };
+
   // Розрахунок відсотка завершеності для прогрес-бару (0..1)
   const progress =
     totalDuration > 0
@@ -110,19 +130,14 @@ export const VoiceMessagePlayer: React.FC<VoiceMessagePlayerProps> = ({
 
       {/* Смуга прогресу та час */}
       <View className="flex-1 justify-center">
-        {/* Прогрес-бар */}
-        <View
-          className={`h-1.5 rounded-full overflow-hidden mb-1 ${
-            isMine ? "bg-white/30" : "bg-surfaceLight"
-          }`}
-        >
-          <View
-            style={{ width: `${progress * 100}%` }}
-            className={`h-full rounded-full ${
-              isMine ? "bg-white" : "bg-primary"
-            }`}
-          />
-        </View>
+        <AudioWaveform
+          waveform={waveform}
+          progress={progress}
+          onSeek={handleSeek}
+          isMine={isMine}
+          barCount={30}
+          maxHeight={22}
+        />
 
         {/* Час та іконка мікрофона */}
         <View className="flex-row justify-between items-center">

@@ -25,6 +25,7 @@ interface MessageBubbleProps {
   videoUrl?: string; // 👈 Старе поле
   videoDuration?: number; // 👈 Старе поле
   isVideoNote?: boolean; // 👈 Старе поле
+  waveform?: number[]; // 👈 new поле
 }
 
 const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
@@ -46,6 +47,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
   videoUrl,
   videoDuration,
   isVideoNote,
+  waveform,
 }) => {
   // Форматуємо час: наприклад "14:32"
   const timeString = new Date(createdAt).toLocaleTimeString([], {
@@ -143,6 +145,7 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
           <VoiceMessagePlayer
             audioUrl={audioUrl}
             duration={audioDuration}
+            waveform={waveform}
             isMine={isMine}
           />
         ) : null}
@@ -158,8 +161,8 @@ const MessageBubbleComponent: React.FC<MessageBubbleProps> = ({
             isVideoNote && !content
               ? "text-grey/80"
               : isMine
-              ? "text-white/70"
-              : "text-grey"
+                ? "text-white/70"
+                : "text-grey"
           }`}
         >
           {timeString}
