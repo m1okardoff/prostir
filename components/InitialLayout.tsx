@@ -7,7 +7,10 @@ import { api } from "@/convex/_generated/api";
 
 export default function InitialLayout() {
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const user = useQuery(api.users.currentUser);
+  const user = useQuery(
+    api.users.currentUser,
+    isAuthenticated ? {} : "skip"
+  );
   const { signOut } = useAuthActions();
   const segments = useSegments();
   const router = useRouter();
@@ -16,16 +19,17 @@ export default function InitialLayout() {
     if (isLoading || (isAuthenticated && user === undefined)) return;
 
     const inAuthScreen = segments[0] === "(auth)";
-    const isUserValid = isAuthenticated && user !== null;
 
-    if (isUserValid) {
+    if (isAuthenticated) {
+      if (user === null) {
+        // Користувач авторизований у системі автентифікації, але його профіль не знайдено в базі
+        void signOut();
+        return;
+      }
       if (inAuthScreen) {
         router.replace("/(tabs)");
       }
     } else {
-      if (isAuthenticated && user === null) {
-        void signOut();
-      }
       if (!inAuthScreen) {
         router.replace("/(auth)/login");
       }
