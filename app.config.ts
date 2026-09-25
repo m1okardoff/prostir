@@ -1,8 +1,14 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
 
-// Базові налаштування додатку Prostir
+// EAS налаштування (замініть на ваш реальний EAS Project ID після виконання eas project:init)
+const EAS_PROJECT_ID = "bbef5e9d-da2a-4297-b5e9-03d17707ec5b"; // наприклад, "3137fc56-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+const PROJECT_SLUG = "prostir";
+const OWNER = "musdev13"; // Ваш Expo username
+
+// Базова конфігурація Production
 const APP_NAME = "Prostir";
-const PACKAGE_NAME = "com.prostir.app";
+// const BUNDLE_IDENTIFIER = "com.musdev13.prostir";
+const PACKAGE_NAME = "com.musdev13.prostir";
 const SCHEME = "prostir";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -21,7 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
 
     name: isDev ? `${APP_NAME} Dev` : APP_NAME,
-    slug: "prostir",
+    slug: PROJECT_SLUG,
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
@@ -48,6 +54,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
       },
+      googleServicesFile: "./google-services.json",
 
       permissions: [
         "android.permission.CAMERA",
@@ -57,6 +64,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
       ],
     },
 
@@ -104,8 +113,28 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         },
       ],
 
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/images/icon.png",
+          color: "#000000",
+          defaultChannel: "default",
+          sounds: [],
+          enableBackgroundRemoteNotifications: false,
+        },
+      ],
+
       "expo-secure-store",
     ],
+
+    extra: {
+      ...config.extra,
+      eas: {
+        projectId: config.extra?.eas?.projectId ?? EAS_PROJECT_ID,
+      },
+    },
+
+    owner: OWNER,
 
     experiments: {
       typedRoutes: true,

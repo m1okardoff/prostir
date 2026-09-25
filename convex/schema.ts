@@ -15,6 +15,7 @@ export default defineSchema({
     followers: v.optional(v.number()),
     following: v.optional(v.number()),
     posts: v.optional(v.number()),
+    pushToken: v.optional(v.string()),
   }).index("by_email", ["email"]),
 
   posts: defineTable({

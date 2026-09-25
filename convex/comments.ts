@@ -1,5 +1,6 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { ConvexError, v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 
 /**
@@ -42,6 +43,28 @@ export const addComment = mutation({
       });
     }
 
+    const receiver = await ctx.db.get(post.userId);
+    const sender = await ctx.db.get(userId);
+
+    if (receiver?.pushToken && sender) {
+      const senderName =
+        sender.fullname ?? sender.username ?? sender.name ?? "Хтось";
+
+      await ctx.scheduler.runAfter(
+        0,
+        internal.pushNotifications.sendPushNotification,
+        {
+          pushToken: receiver.pushToken,
+          title: "Новий коментар &#x1f4ac;",
+          body: `${senderName}: ${args.content}`,
+          data: {
+            type: "comment",
+            postId: args.postId,
+          },
+        },
+      );
+    }
+
     return commentId;
   },
 });
@@ -75,7 +98,7 @@ export const getComments = query({
               "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
           },
         };
-      })
+      }),
     );
 
     return commentsWithUsers;

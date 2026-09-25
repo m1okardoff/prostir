@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "193867891384",
+    "project_id": "prostir-musdev-ohayodattebayo",
+    "storage_bucket": "prostir-musdev-ohayodattebayo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:193867891384:android:84e1c0d90b55abd4cf6a4d",
+        "android_client_info": {
+          "package_name": "com.musdev13.prostir"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-iSxPGO6btsMzq09umSSypN8y-8HQtA4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

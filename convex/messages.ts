@@ -2,6 +2,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { mutation, query } from "./_generated/server";
 
 /**
@@ -294,6 +295,58 @@ export const sendMessage = mutation({
       lastMessage: previewText,
       lastMessageAt: now,
     });
+
+    const sender = await ctx.db.get(currentUserId);
+    const senderName =
+      sender?.fullname ?? sender?.username ?? sender?.name ?? "Користувач";
+
+    // Отримуємо ID всіх учасників, крім відправника
+    const otherParticipantIds = conversation.participantIds.filter(
+      (id) => id !== currentUserId,
+    );
+
+    if (otherParticipantIds.length > 0) {
+      // Завантажуємо дані учасників для отримання їх pushToken
+      const otherUsers = await Promise.all(
+        otherParticipantIds.map((id) => ctx.db.get(id)),
+      );
+
+      // Формуємо заголовок повідомлення:
+      // Для груп: "Назва групи • Ім'я автора"
+      // Для особистих: "Ім'я автора"
+      const notificationTitle = conversation.isGroup
+        ? `${conversation.name ?? "Груповий чат"} • ${senderName}`
+        : senderName;
+
+      // Збираємо список повідомлень для всіх учасників, у яких збережено pushToken
+      const pushNotificationsToSend = otherUsers
+        .filter((user) => user && user.pushToken)
+        .map((user) => ({
+          pushToken: user!.pushToken!,
+          title: notificationTitle,
+          body: previewText || "Надіслав(-ла) повідомлення",
+          data: {
+            type: "chat",
+            conversationId: args.conversationId,
+          },
+        }));
+
+      if (pushNotificationsToSend.length === 1) {
+        // Одиночний чат
+        await ctx.scheduler.runAfter(
+          0,
+          internal.pushNotifications.sendPushNotification,
+          pushNotificationsToSend[0],
+        );
+      } else if (pushNotificationsToSend.length > 1) {
+        // Груповий чат — відправляємо всім разом через batch action
+        await ctx.scheduler.runAfter(
+          0,
+          internal.pushNotifications.sendPushNotificationsBatch,
+          { notifications: pushNotificationsToSend },
+        );
+      }
+    }
 
     return messageId;
   },

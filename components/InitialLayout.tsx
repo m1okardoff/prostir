@@ -1,16 +1,15 @@
-import { useEffect } from "react";
-import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
-import * as SplashScreen from "expo-splash-screen";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
+import { useQuery } from "convex/react";
+import { Stack, useRouter, useSegments } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect } from "react";
 
 export default function InitialLayout() {
+  usePushNotifications();
   const { isAuthenticated, isLoading } = useConvexAuth();
-  const user = useQuery(
-    api.users.currentUser,
-    isAuthenticated ? {} : "skip"
-  );
+  const user = useQuery(api.users.currentUser, isAuthenticated ? {} : "skip");
   const { signOut } = useAuthActions();
   const segments = useSegments();
   const router = useRouter();
