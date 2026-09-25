@@ -24,6 +24,7 @@ export default function InitialLayout() {
       if (user === null) {
         // Користувач авторизований у системі автентифікації, але його профіль не знайдено в базі
         void signOut();
+        SplashScreen.hideAsync().catch(() => {});
         return;
       }
       if (inAuthScreen) {
@@ -35,7 +36,7 @@ export default function InitialLayout() {
       }
     }
 
-    SplashScreen.hideAsync();
+    SplashScreen.hideAsync().catch(() => {});
   }, [isAuthenticated, isLoading, user, segments, router, signOut]);
 
   if (isLoading || (isAuthenticated && user === undefined)) {

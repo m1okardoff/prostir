@@ -466,9 +466,10 @@ export default function ChatRoomScreen() {
                     const canEdit = item.isMine && !!item.content;
                     const canDelete =
                       item.isMine ||
-                      conversation.creatorId === currentUserId ||
-                      (conversation.adminIds?.includes(currentUserId!!) ??
-                        false);
+                      (!!currentUserId && conversation.creatorId === currentUserId) ||
+                      (!!currentUserId &&
+                        (conversation.adminIds?.includes(currentUserId) ??
+                          false));
 
                     setActionsModalState({
                       visible: true,

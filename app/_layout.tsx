@@ -6,9 +6,11 @@ import { Image } from "expo-image";
 import * as SecureStore from "expo-secure-store";
 import { StatusBar } from "expo-status-bar";
 import { cssInterop } from "nativewind";
-import { Platform } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+LogBox.ignoreLogs(["Failed to open DevTools"]);
 
 cssInterop(Image, { className: "style" });
 
