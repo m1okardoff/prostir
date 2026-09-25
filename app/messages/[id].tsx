@@ -1,11 +1,11 @@
 import { ChatInput } from "@/components/ChatInput";
 import { GroupInfoModal } from "@/components/GroupInfoModal";
-import { MessageActionTarget } from "@/components/MessageActionsModal";
-import { MessageBubble } from "@/components/MessageBubble";
 import {
-  ReactionPickerModal,
-  ReactionPickerPosition,
-} from "@/components/ReactionPickerModal";
+  MessageActionsModal,
+  MessageActionTarget,
+} from "@/components/MessageActionsModal";
+import { MessageBubble } from "@/components/MessageBubble";
+import { ReactionPickerPosition } from "@/components/ReactionPickerModal";
 import { SwipeableMessageItem } from "@/components/SwipeableMessageItem";
 import { VideoNoteRecorderModal } from "@/components/VideoNoteRecorderModal";
 import { COLORS } from "@/constants/theme";
@@ -87,10 +87,6 @@ export default function ChatRoomScreen() {
     text: string;
   } | null>(null);
 
-  const [pickerState, setPickerState] = useState<{
-    messageId: Id<"messages">;
-    position: ReactionPickerPosition;
-  } | null>(null);
 
   // 2. Мутація перемикання реакцій:
   const toggleReactionMutation = useMutation(api.messages.toggleReaction);
@@ -508,6 +504,7 @@ export default function ChatRoomScreen() {
                   }
                   isSystem={item.isSystem}
                   waveform={item.waveform}
+                  isEdited={item.isEdited}
                 />
               </SwipeableMessageItem>
             )}
@@ -558,16 +555,54 @@ export default function ChatRoomScreen() {
           isSending={isSending}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          editingMessage={editingMessage}
+          onCancelEdit={() => setEditingMessage(null)}
+          onSaveEdit={handleSaveEdit}
         />
       </KeyboardAvoidingView>
-      {/* Модальне меню швидких емодзі */}
-      <ReactionPickerModal
-        visible={!!pickerState}
-        position={pickerState?.position}
-        onClose={() => setPickerState(null)}
+
+      {/* Модальне контекстне меню дій над повідомленням */}
+      <MessageActionsModal
+        visible={actionsModalState.visible}
+        position={actionsModalState.position}
+        target={actionsModalState.target}
+        onClose={() =>
+          setActionsModalState((prev) => ({ ...prev, visible: false }))
+        }
         onSelectEmoji={(emoji) => {
-          if (pickerState) {
-            handleToggleReaction(pickerState.messageId, emoji);
+          if (actionsModalState.target) {
+            handleToggleReaction(
+              actionsModalState.target.messageId as Id<"messages">,
+              emoji,
+            );
+          }
+        }}
+        onReply={() => {
+          if (actionsModalState.target) {
+            setEditingMessage(null);
+            setReplyingTo({
+              messageId: actionsModalState.target.messageId,
+              senderName: actionsModalState.target.senderName,
+              text: actionsModalState.target.content || "Вкладення",
+            });
+          }
+        }}
+        onCopy={() => {
+          if (actionsModalState.target) {
+            handleCopyMessage(actionsModalState.target.content);
+          }
+        }}
+        onEdit={() => {
+          if (actionsModalState.target) {
+            handleStartEdit(
+              actionsModalState.target.messageId,
+              actionsModalState.target.content,
+            );
+          }
+        }}
+        onDelete={() => {
+          if (actionsModalState.target) {
+            handleDeleteMessage(actionsModalState.target.messageId);
           }
         }}
       />

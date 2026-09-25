@@ -1,3 +1,4 @@
+import { EditPreviewBar } from "@/components/EditPreviewBar";
 import { ReplyPreviewBar } from "@/components/ReplyPreviewBar";
 import { COLORS } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
@@ -182,8 +183,19 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <View className="bg-surface border-t border-surfaceLight">
-      {/* &#x1f448; Відображаємо панель відповіді над інпутом */}
-      {replyingTo && onCancelReply && (
+      {/* 1. Панель редагування повідомлення */}
+      {editingMessage && onCancelEdit && (
+        <EditPreviewBar
+          originalText={editingMessage.text}
+          onCancel={() => {
+            setText("");
+            onCancelEdit();
+          }}
+        />
+      )}
+
+      {/* 2. Відображаємо панель відповіді над інпутом */}
+      {!editingMessage && replyingTo && onCancelReply && (
         <ReplyPreviewBar
           senderName={replyingTo.senderName}
           text={replyingTo.text}
@@ -253,14 +265,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
           </View>
         ) : (
           <>
-            <TouchableOpacity onPress={pickImage} className="mr-3 p-1">
-              <Ionicons name="image-outline" size={24} color={COLORS.grey} />
-            </TouchableOpacity>
+            {!editingMessage && (
+              <TouchableOpacity onPress={pickImage} className="mr-3 p-1">
+                <Ionicons name="image-outline" size={24} color={COLORS.grey} />
+              </TouchableOpacity>
+            )}
 
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="Напишіть повідомлення..."
+              placeholder={
+                editingMessage
+                  ? "Редагуйте повідомлення..."
+                  : "Напишіть повідомлення..."
+              }
               placeholderTextColor={COLORS.grey}
               multiline
               maxLength={1000}
@@ -276,13 +294,17 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                 {isSending ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Ionicons name="arrow-up" size={20} color="#FFFFFF" />
+                  <Ionicons
+                    name={editingMessage ? "checkmark" : "arrow-up"}
+                    size={20}
+                    color="#FFFFFF"
+                  />
                 )}
               </TouchableOpacity>
             ) : (
               <View className="flex-row items-center gap-2 ml-2">
-                {/* Кнопка запису відеокружечка &#x1f4f9; */}
-                {onOpenVideoRecorder && (
+                {/* Кнопка запису відеокружечка */}
+                {!editingMessage && onOpenVideoRecorder && (
                   <TouchableOpacity
                     onPress={onOpenVideoRecorder}
                     className="p-1"
@@ -296,18 +318,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({
                   </TouchableOpacity>
                 )}
 
-                {/* Кнопка запису голосового &#x1f3a4; */}
-                <TouchableOpacity
-                  onPress={startRecording}
-                  className="p-1"
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name="mic-outline"
-                    size={24}
-                    color={COLORS.primary}
-                  />
-                </TouchableOpacity>
+                {/* Кнопка запису голосового */}
+                {!editingMessage && (
+                  <TouchableOpacity
+                    onPress={startRecording}
+                    className="p-1"
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name="mic-outline"
+                      size={24}
+                      color={COLORS.primary}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </>
