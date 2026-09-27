@@ -1,21 +1,40 @@
 {
   "project_info": {
-    "project_number": "193867891384",
-    "project_id": "prostir-musdev-ohayodattebayo",
-    "storage_bucket": "prostir-musdev-ohayodattebayo.firebasestorage.app"
+    "project_number": "169911279429",
+    "project_id": "prostir-pv521",
+    "storage_bucket": "prostir-pv521.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:193867891384:android:84e1c0d90b55abd4cf6a4d",
+        "mobilesdk_app_id": "1:169911279429:android:8913150c31d02a409f682c",
         "android_client_info": {
-          "package_name": "com.musdev13.prostir"
+          "package_name": "com.skhmelyuk.prostir"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyC-iSxPGO6btsMzq09umSSypN8y-8HQtA4"
+          "current_key": "AIzaSyBtSelPY7DTmxL9dItfWe_AXlvs4SX4H-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:169911279429:android:fc3b527e6aa452ab9f682c",
+        "android_client_info": {
+          "package_name": "com.skhmelyuk.prostir.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtSelPY7DTmxL9dItfWe_AXlvs4SX4H-w"
         }
       ],
       "services": {

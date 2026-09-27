@@ -1,14 +1,15 @@
 import { ConfigContext, ExpoConfig } from "expo/config";
 
 // EAS налаштування (замініть на ваш реальний EAS Project ID після виконання eas project:init)
-const EAS_PROJECT_ID = "bbef5e9d-da2a-4297-b5e9-03d17707ec5b"; // наприклад, "3137fc56-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-const PROJECT_SLUG = "prostir";
-const OWNER = "musdev13"; // Ваш Expo username
+const EAS_PROJECT_ID = "962c9bf5-7af0-4808-87ff-61f2bfa71464"; // наприклад, "3137fc56-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+const PROJECT_SLUG = "prostir-pv521";
+const OWNER = "skhmelyuk"; // Ваш Expo username
 
 // Базова конфігурація Production
+
 const APP_NAME = "Prostir";
-// const BUNDLE_IDENTIFIER = "com.musdev13.prostir";
-const PACKAGE_NAME = "com.musdev13.prostir";
+// const BUNDLE_IDENTIFIER = "com.skhmelyuk.prostir";
+const PACKAGE_NAME = "com.skhmelyuk.prostir";
 const SCHEME = "prostir";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -48,13 +49,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     android: {
-      package: isDev ? `${PACKAGE_NAME}.dev` : PACKAGE_NAME,
+      package: isDev ? `${PACKAGE_NAME}.dev` : `${PACKAGE_NAME}`,
 
       adaptiveIcon: {
         foregroundImage: "./assets/images/android-icon-foreground.png",
         backgroundColor: "#000000",
       },
-      googleServicesFile: "./google-services.json",
+      googleServicesFile: isDev ? "./google-services-dev.json" : "./google-services.json",
 
       permissions: [
         "android.permission.CAMERA",

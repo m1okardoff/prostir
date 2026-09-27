@@ -10,7 +10,6 @@ import { Platform } from "react-native";
 // Налаштування поведінки сповіщень, коли додаток активний (у фокусі)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
     shouldShowBanner: true,
@@ -107,7 +106,6 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FFFFFF",
-      sound: "default",
     });
   }
 
